@@ -1,0 +1,34 @@
+
+/* FONDO GENERAL */
+body {
+    background-color: #eef2f6 !important;
+}
+
+/* SECCIONES */
+.section-light {
+    background-color: #ffffff !important;
+}
+
+.section-gray {
+    background-color: #eef2f6 !important;
+}
+
+/* NAVBAR */
+.navbar {
+    background-color: #ffffff !important;
+}
+
+/* CARDS */
+.card-feature {
+    background-color: #ffffff !important;
+}
+
+.card-obj {
+    background-color: #ffffff !important;
+}
+
+/* FOOTER */
+footer {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+}
