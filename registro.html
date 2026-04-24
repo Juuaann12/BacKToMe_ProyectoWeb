@@ -1,54 +1,242 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ============================================================
+       META & CONFIGURACIÓN BÁSICA
+       ============================================================ -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BackToMe – Crea tu cuenta y ayuda a recuperar objetos perdidos">
+  <title>BackToMe – Crear Cuenta</title>
 
-<title>Registro - BackToMe</title>
+  <!-- ============================================================
+       DEPENDENCIAS EXTERNAS
+       (Mismas que login.html para consistencia visual)
+       ============================================================ -->
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap 5.3 – Grid, utilidades y componentes base -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
+  <!-- Bootstrap Icons 1.11 – Iconografía del formulario -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Google Fonts – Nunito (pesos necesarios solamente) -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Estilos personalizados del registro -->
+  <link rel="stylesheet" href="styles_register.css">
 </head>
 
-<body class="d-flex align-items-center justify-content-center vh-100">
+<body class="register-body">
 
-<div class="card shadow p-4" style="width: 350px;">
-    <h4 class="text-center mb-3">Registrarse</h4>
+  <!-- ============================================================
+       FONDO ANIMADO
+       Idéntico al de login. Capa decorativa, detrás del contenido.
+       ============================================================ -->
+  <div class="bg-animation" aria-hidden="true"></div>
 
-    <input type="text" id="name" class="form-control mb-3" placeholder="Nombre">
-    <input type="email" id="email" class="form-control mb-3" placeholder="Correo">
-    <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
+  <!-- ============================================================
+       CONTENEDOR PRINCIPAL DEL REGISTRO
+       ============================================================ -->
+  <main class="register-container" role="main">
 
-    <button class="btn btn-primary w-100" onclick="register()">Crear cuenta</button>
+    <!-- ----------------------------------------------------------
+         ENCABEZADO: Logo + Títulos
+         ---------------------------------------------------------- -->
+    <header class="register-header text-center mb-5">
+      <div class="logo mb-4">
+        <img
+          src="imagenes/logo.png"
+          alt="Logo de BackToMe"
+          class="logo-img"
+          width="80"
+          height="80">
+      </div>
+      <h1 class="register-title">Crea tu cuenta</h1>
+      <p class="register-subtitle">Únete y ayuda a recuperar objetos perdidos</p>
+    </header>
 
-    <p class="text-center mt-3">
-        ¿Ya tienes cuenta? <a href="login.html">Inicia sesión</a>
-    </p>
-</div>
+    <!-- ----------------------------------------------------------
+         FORMULARIO DE REGISTRO
+         novalidate → la validación la maneja register.js
+         ---------------------------------------------------------- -->
+    <form id="registerForm" class="register-form" novalidate>
 
-<script>
-function register() {
-    let name = document.getElementById("name").value;
-    let email = document.getElementById("email").value;
-    let password = document.getElementById("password").value;
+      <!-- Campo: Nombre completo -->
+      <div class="form-floating mb-4">
+        <input
+          type="text"
+          class="form-control register-input"
+          id="name"
+          name="name"
+          placeholder="Tu nombre completo"
+          autocomplete="name"
+          minlength="2"
+          required>
+        <label for="name">
+          <i class="bi bi-person me-2" aria-hidden="true"></i>Nombre completo
+        </label>
+      </div>
 
-    if (!name || !email || !password) {
-        alert("Completa todos los campos");
-        return;
-    }
+      <!-- Campo: Correo electrónico -->
+      <div class="form-floating mb-4">
+        <input
+          type="email"
+          class="form-control register-input"
+          id="email"
+          name="email"
+          placeholder="tu@email.com"
+          autocomplete="email"
+          required>
+        <label for="email">
+          <i class="bi bi-envelope me-2" aria-hidden="true"></i>Correo electrónico
+        </label>
+      </div>
 
-    let user = {
-        name: name,
-        email: email,
-        password: password
-    };
+      <!-- ⭐ NUEVO CAMPO: Cédula -->
+      <div class="form-floating mb-4">
+        <input
+          type="text"
+          class="form-control register-input"
+          id="cedula"
+          name="cedula"
+          placeholder="1234567890"
+          autocomplete="off"
+          minlength="10"
+          maxlength="10"
+          pattern="[0-9]{10}"
+          required>
+        <label for="cedula">
+          <i class="bi bi-credit-card me-2" aria-hidden="true"></i>Cédula
+        </label>
+      </div>
 
-    localStorage.setItem(email, JSON.stringify(user));
+      <!-- Campo: Teléfono (opcional) -->
+      <div class="form-floating mb-4">
+        <input
+          type="tel"
+          class="form-control register-input"
+          id="phone"
+          name="phone"
+          placeholder="999 123 456"
+          autocomplete="tel">
+        <label for="phone">
+          <i class="bi bi-telephone me-2" aria-hidden="true"></i>Teléfono <span class="text-muted fw-normal">(opcional)</span>
+        </label>
+      </div>
 
-    alert("Usuario registrado correctamente");
-    window.location.href = "login.html";
-}
-</script>
+      <!-- Campo: Contraseña (con toggle de visibilidad) -->
+      <div class="form-floating mb-3 position-relative">
+        <input
+          type="password"
+          class="form-control register-input"
+          id="password"
+          name="password"
+          placeholder="Mínimo 6 caracteres"
+          autocomplete="new-password"
+          minlength="6"
+          required>
+        <label for="password">
+          <i class="bi bi-lock me-2" aria-hidden="true"></i>Contraseña
+        </label>
 
+        <!-- Toggle visibilidad: alterna type="password" ↔ type="text" -->
+        <button
+          type="button"
+          class="btn-toggle-pass"
+          id="togglePassword"
+          aria-label="Mostrar u ocultar contraseña">
+          <i class="bi bi-eye" id="passIcon" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- Campo: Confirmar contraseña (validación en tiempo real en JS) -->
+      <div class="form-floating mb-4">
+        <input
+          type="password"
+          class="form-control register-input"
+          id="confirmPassword"
+          name="confirmPassword"
+          placeholder="Confirma tu contraseña"
+          autocomplete="new-password"
+          required>
+        <label for="confirmPassword">
+          <i class="bi bi-lock-fill me-2" aria-hidden="true"></i>Confirmar contraseña
+        </label>
+      </div>
+
+      <!-- Checkbox: Términos y Condiciones -->
+      <!-- TODO: Enlazar href a páginas reales de términos y privacidad -->
+      <div class="form-check mb-4">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          id="terms"
+          name="terms"
+          required>
+        <label class="form-check-label" for="terms">
+          Acepto los <a href="#" class="terms-link">Términos y Condiciones</a>
+          y la <a href="#" class="terms-link">Política de Privacidad</a>
+        </label>
+      </div>
+
+      <!-- Botón de envío con estado de carga -->
+      <button type="submit" class="btn btn-primary btn-register w-100 mb-4">
+        <span class="btn-text">Crear Cuenta</span>
+        <!-- Spinner visible solo durante la petición (controlado desde JS) -->
+        <span class="btn-loader d-none" aria-live="polite">
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          <span class="visually-hidden">Creando cuenta...</span>
+        </span>
+      </button>
+    </form>
+
+    <!-- ----------------------------------------------------------
+         PIE: Enlace al login
+         ---------------------------------------------------------- -->
+    <footer class="text-center">
+      <p class="register-footer mb-0">
+        ¿Ya tienes cuenta?
+        <a href="login.html" class="login-link">Inicia sesión</a>
+      </p>
+    </footer>
+
+    <!-- ----------------------------------------------------------
+         MENSAJES DE FEEDBACK
+         Ambos ocultos por defecto (clase "d-none").
+         register.js los muestra según el resultado del registro.
+         ---------------------------------------------------------- -->
+
+    <!-- Éxito -->
+    <div
+      id="successMessage"
+      class="alert alert-success alert-dismissible fade show d-none mt-3"
+      role="alert"
+      aria-live="polite">
+      <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>
+      <span id="successText">¡Cuenta creada exitosamente!</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+
+    <!-- Error -->
+    <div
+      id="errorMessage"
+      class="alert alert-danger alert-dismissible fade show d-none mt-3"
+      role="alert"
+      aria-live="assertive">
+      <i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>
+      <span id="errorText">Error en el registro</span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+
+  </main><!-- /register-container -->
+
+  <!-- ============================================================
+       SCRIPTS
+       Bootstrap Bundle incluye Popper (necesario para alerts).
+       register.js al final para que el DOM ya esté disponible.
+       ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="register.js"></script>
 </body>
 </html>
