@@ -1,10 +1,12 @@
 /* ================================================================
-   STYLES.CSS  –  BackToMe (Index simplificado)
-   Solo estilos esenciales para la versión sin funcionalidades
+   STYLES.CSS  –  BackToMe
+   Hoja de estilos compartida: index.html + admin.html
+   Paleta: Azul pastel / Celeste claro
    ================================================================ */
 
 /* ----------------------------------------------------------------
    VARIABLES GLOBALES
+   Un único lugar para cambiar colores, sombras y radios.
    ---------------------------------------------------------------- */
 :root {
   /* Paleta principal */
@@ -26,11 +28,19 @@
   --btm-text:           #1a2f45;
   --btm-muted:          #6b8aaa;
 
+  /* Semánticos */
+  --btm-danger:         #dc3545;
+  --btm-success:        #198754;
+  --btm-warning:        #fd7e14;
+  --btm-purple:         #6f42c1;
+
   /* Radios */
   --radius-card:        16px;
+  --radius-btn:         12px;
 
   /* Sombras */
   --shadow-card:        0 6px 24px rgba(47, 158, 232, 0.15);
+  --shadow-hover:       0 25px 50px rgba(0, 0, 0, 0.15);
 
   /* Tipografía */
   --font-body:          'Nunito', sans-serif;
@@ -57,6 +67,7 @@ body {
 
 /* ================================================================
    NAVBAR
+   Sticky top, borde inferior sutil.
    ================================================================ */
 .btm-navbar {
   background-color: var(--btm-card-bg);
@@ -64,7 +75,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* ── Logo ── */
@@ -73,7 +86,6 @@ body {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  margin: 0 auto;
 }
 
 .btm-logo-img {
@@ -92,6 +104,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: center;
 }
 
 .btm-logo-text {
@@ -104,19 +117,308 @@ body {
 .btm-logo-text .light-part { font-weight: 400; color: var(--btm-text); }
 
 /* ================================================================
-   HERO SECTION
+   NAVBAR – MENÚ CENTRAL (nuevo)
+   ================================================================ */
+.nav {
+  align-items: center;
+  margin-bottom: 0; /* quita espacio raro */
+}
+
+.nav-link {
+  color: var(--btm-text);
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+/* Hover bonito */
+.nav-link:hover {
+  background: var(--btm-light);
+  color: var(--btm-primary-dark);
+}
+
+/* Activo */
+.nav-link.active {
+  background: var(--btm-primary);
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(91, 188, 255, 0.3);
+}
+
+/* ================================================================
+   BOTONES AUTH (login / register)
+   ================================================================ */
+.navbar-actions .btn {
+  border-radius: var(--radius-btn);
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.navbar-actions .btn-outline-secondary:hover {
+  background: var(--btm-light);
+  border-color: var(--btm-primary);
+  color: var(--btm-primary-dark);
+}
+
+.navbar-actions .btn-primary {
+  background: var(--btm-primary);
+  border: none;
+}
+
+.navbar-actions .btn-primary:hover {
+  background: var(--btm-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(91, 188, 255, 0.4);
+}
+
+/* ================================================================
+   NAVBAR RESPONSIVE
+   ================================================================ */
+@media (max-width: 768px) {
+
+  .nav {
+    display: none !important; /* Oculta menú central en móvil */
+  }
+
+  .navbar-actions .btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+}
+
+.btm-navbar {
+  transition: box-shadow 0.3s ease;
+}
+
+.btm-navbar:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+}
+
+/* ================================================================
+   LAYOUT PRINCIPAL (Admin)
+   ================================================================ */
+.btm-main {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ================================================================
+   ALERTA ADMIN
+   ================================================================ */
+.btm-alert-admin {
+  background-color: #fff5f5;
+  border: 1.5px solid #f5c6cb;
+  border-radius: var(--radius-card);
+  color: var(--btm-danger);
+}
+
+/* ================================================================
+   TARJETAS DE ESTADÍSTICAS – Admin
+   ================================================================ */
+.stat-card {
+  background-color: var(--btm-card-bg);
+  border: 1.5px solid var(--btm-border);
+  border-radius: var(--radius-card);
+  padding: 1.4rem 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+/* Etiqueta y valor (admin) */
+.stat-card .stat-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--btm-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.stat-card .stat-value {
+  font-size: 2.1rem;
+  font-weight: 900;
+  color: var(--btm-text);
+  line-height: 1;
+  margin: 0;
+}
+
+/* ── Íconos de las stat-card (Admin) ── */
+.stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon i { font-size: 1.65rem; }
+
+.stat-icon.icon-users   { background-color: #dbeffe; color: var(--btm-primary); }
+.stat-icon.icon-posts   { background-color: #d4edda; color: var(--btm-success); }
+.stat-icon.icon-new     { background-color: #e8d8f8; color: var(--btm-purple); }
+.stat-icon.icon-reports { background-color: #ffe5d0; color: var(--btm-warning); }
+
+/* ================================================================
+   MENÚ LATERAL (Offcanvas)
+   ================================================================ */
+.menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.menu li:hover {
+  background: var(--btm-light);
+  color: var(--btm-primary-dark);
+}
+
+/* Link dentro de <li> */
+.menu-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  transition: color 0.2s ease;
+}
+
+.menu-link:hover,
+.menu-link.active { color: var(--btm-primary-dark); }
+
+/* Cerrar sesión */
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+  color: var(--btm-danger);
+  font-weight: 600;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition: opacity 0.2s ease;
+}
+
+.logout:hover { opacity: 0.75; }
+
+/* ================================================================
+   TABS (Admin – Gestión de contenido)
+   ================================================================ */
+.tabs {
+  display: flex;
+  background: #f1f3f5;
+  border-radius: 30px;
+  padding: 5px;
+  gap: 4px;
+}
+
+.tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 600;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tab.active {
+  background: var(--btm-card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ================================================================
+   BUSCADOR (Admin)
+   ================================================================ */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f1f3f5;
+  border-radius: 10px;
+  padding: 10px 14px;
+  gap: 10px;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+/* ================================================================
+   ITEMS DE LISTA (Admin – usuarios / publicaciones)
+   ================================================================ */
+.item {
+  background: var(--btm-card-bg);
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow 0.2s ease;
+}
+
+.item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Badge de rol */
+.badge-role {
+  background: var(--btm-light);
+  color: var(--btm-primary-dark);
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Sección de gestión */
+.gestion-contenido {
+  border-radius: var(--radius-card);
+  border: 1.5px solid var(--btm-border);
+}
+
+/* ================================================================
+   HERO SECTION (Index)
    ================================================================ */
 .hero-section {
   background: linear-gradient(135deg,
-    #A8D5E2 0%,
-    #D6EAF8 50%,
-    #F8FBFF 100%
+    #A8D5E2 0%,   /* Azul pastel */
+    #D6EAF8 50%,  /* Celeste pastel */
+    #F8FBFF 100%  /* Blanco hielo */
   );
   color: #2C3E50;
-  margin-top: -1px;
-  padding: 4rem 1rem;
+  margin-top: -1px; /* Elimina micro-gap con el navbar */
 }
 
+/* Título hero con gradiente de texto */
 .hero-title .bold-part {
   font-weight: 900;
   font-size: clamp(2.5rem, 5vw, 3.5rem);
@@ -131,15 +433,46 @@ body {
   font-size: 1.25rem;
   color: #34495E;
   max-width: 500px;
-  margin: 0 auto 3rem;
+  margin: 0 auto;
+}
+
+/* ── Botones pastel del hero ── */
+.btn-pastel-primary {
+  background: linear-gradient(135deg, #AED6F0, var(--btm-primary-mid));
+  border: none;
+  color: #2C3E50;
+  box-shadow: 0 8px 25px rgba(174, 214, 240, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-pastel-primary:hover {
+  background: linear-gradient(135deg, var(--btm-primary-mid), var(--btm-primary-lite));
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(174, 214, 240, 0.6);
+  color: #2C3E50;
+}
+
+.btn-pastel-secondary {
+  background: linear-gradient(135deg, #F8FBFF, #E8F6F3);
+  border: 2px solid var(--btm-primary-soft);
+  color: #2C3E50;
+  box-shadow: 0 8px 25px rgba(168, 213, 226, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-pastel-secondary:hover {
+  background: linear-gradient(135deg, #E8F6F3, #D5F4E6);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(168, 213, 226, 0.5);
+  color: #2C3E50;
 }
 
 /* ================================================================
-   ESTADÍSTICAS
+   ESTADÍSTICAS – Index (stat-card-home)
+   Diferente de stat-card del admin: más grandes y coloridas.
    ================================================================ */
 .stats-section {
   background: var(--btm-bg-page);
-  padding: 4rem 1rem;
 }
 
 .stat-card-home {
@@ -151,10 +484,9 @@ body {
   position: relative;
   overflow: hidden;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
-  text-align: center;
 }
 
-/* Barra de color superior */
+/* Barra de color superior por variante */
 .stat-card-home::before {
   content: '';
   position: absolute;
@@ -170,7 +502,7 @@ body {
 .stat-card-home.warning::before { background: linear-gradient(90deg, #FEF9E7, #FAD7A8); }
 .stat-card-home.info::before    { background: linear-gradient(90deg, #E8F6F3, #B2DFDB); }
 
-/* Ícono */
+/* Ícono circular grande (Index) */
 .stat-card-home .stat-icon {
   width: 85px;
   height: 85px;
@@ -178,9 +510,6 @@ body {
   margin: 0 auto 1.5rem;
   font-size: 2.2rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .stat-card-home.success .stat-icon { background: linear-gradient(135deg, #D5F4E6, #C8E6C9); color: #2E7D32; }
@@ -188,6 +517,7 @@ body {
 .stat-card-home.warning .stat-icon { background: linear-gradient(135deg, #FFF8E1, #FFF59D); color: #F57C00; }
 .stat-card-home.info    .stat-icon { background: linear-gradient(135deg, #E0F2F1, #B2DFDB); color: #00695C; }
 
+/* Valor (Index) */
 .stat-card-home .stat-value {
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 900;
@@ -196,6 +526,7 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/* Etiqueta (Index) */
 .stat-card-home .stat-label {
   font-size: 0.95rem;
   font-weight: 700;
@@ -206,16 +537,12 @@ body {
 
 .stat-card-home:hover {
   transform: translateY(-12px);
-  box-shadow: var(--shadow-card) !important;
+  box-shadow: var(--shadow-hover) !important;
 }
 
 /* ================================================================
-   PUBLICACIONES RECIENTES
+   PUBLICACIONES RECIENTES – Cards hover
    ================================================================ */
-section[aria-label="Publicaciones recientes"] {
-  padding: 4rem 1rem;
-}
-
 .hover-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border-radius: var(--radius-card);
@@ -227,20 +554,21 @@ section[aria-label="Publicaciones recientes"] {
 }
 
 /* ================================================================
-   SECCIÓN SEGURIDAD
+   SECCIÓN SEGURIDAD (Index)
    ================================================================ */
 .seguridad-section {
   background: linear-gradient(135deg, #F8FBFF 0%, #E8F6F3 100%);
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 4rem 1rem;
 }
 
 .seguridad-card {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
+/* Ícono del encabezado de seguridad */
 .seguridad-icon {
   width: 80px;
   height: 80px;
@@ -253,6 +581,7 @@ section[aria-label="Publicaciones recientes"] {
   box-shadow: 0 10px 30px rgba(168, 213, 226, 0.4);
 }
 
+/* Items de recomendación */
 .seguridad-item {
   text-align: center;
   padding: 1.5rem;
@@ -261,7 +590,6 @@ section[aria-label="Publicaciones recientes"] {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.8);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  margin-bottom: 1rem;
 }
 
 .seguridad-item:hover {
@@ -281,12 +609,11 @@ section[aria-label="Publicaciones recientes"] {
 }
 
 /* ================================================================
-   FOOTER
+   FOOTER (Index)
    ================================================================ */
 .footer-section {
   background: var(--btm-bg-page);
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 2rem 1rem;
   color: #6C757D;
 }
 
@@ -295,28 +622,106 @@ section[aria-label="Publicaciones recientes"] {
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
-  margin: 0 0.5rem;
 }
 
 .footer-link:hover {
   color: var(--btm-primary-mid);
+  text-decoration: underline;
+}
+
+/* ================================================================
+   MODALES (Index)
+   ================================================================ */
+.modal-content {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+/* Gradientes de cabecera de modales */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--btm-primary-dark) 0%, var(--btm-primary-mid) 100%);
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, #17A2B8 0%, #20C997 100%);
+}
+
+/* Ícono en cabecera del modal */
+.modal-icon {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+/* Dropzone de fotos */
+.dropzone {
+  border: 2px dashed var(--btm-primary-soft) !important;
+  cursor: pointer;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+}
+
+.dropzone:hover {
+  background: var(--btm-bg-page) !important;
+  border-color: var(--btm-primary-mid) !important;
+  transform: scale(1.01);
+}
+
+/* Filtros en modal de búsqueda */
+.filtros-section {
+  background: var(--btm-bg-page);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+  border: 1px solid rgba(168, 213, 226, 0.3);
+}
+
+/* Item de resultado en buscador */
+.resultado-item {
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.resultado-item:hover {
+  background: var(--btm-bg-page) !important;
+  transform: translateX(4px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* ================================================================
    RESPONSIVE
    ================================================================ */
 @media (max-width: 768px) {
+  /* Hero */
   .hero-title .bold-part { font-size: 2.5rem; }
-  
-  .footer-section .col-md-6:last-child { 
-    text-align: center; 
-    margin-top: 1rem; 
-  }
-  
+  .btn-lg { padding: 1rem 2rem; font-size: 1rem; }
+
+  /* Seguridad */
   .seguridad-item { margin-bottom: 1rem; }
+  .footer-section .col-md-6:last-child { text-align: center; margin-top: 1rem; }
+
+  /* Modales */
+  .modal-dialog { margin: 1rem; }
+  .modal-body   { padding: 1.5rem; }
 }
 
 @media (max-width: 480px) {
   .stat-card-home { padding: 1.5rem 1rem; }
-  .btm-navbar { padding: 1rem; }
+}
+
+/* ================================================================
+   NAVBAR - ESTILO PARA OPCIÓN ACTIVA (MEJORADO)
+   ================================================================ */
+.btm-navbar .nav .nav-link.active {
+  background: var(--btm-primary);
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(91, 188, 255, 0.3);
+  border-radius: 10px;
+}
+
+.btm-navbar .nav .nav-link.active:hover {
+  background: var(--btm-primary-dark);
+  color: white !important;
 }

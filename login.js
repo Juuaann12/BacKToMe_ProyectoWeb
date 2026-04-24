@@ -1,9 +1,13 @@
 /* ================================================================
    LOGIN.JS  –  BackToMe · Lógica de autenticación
    
-   FLUJO ACTUAL  →  validación local con usuarios de prueba.
-   FLUJO FUTURO  →  reemplazar checkUser() por llamada a Supabase Auth.
+   CONEXIÓN:  Supabase - Tabla usuario
    ================================================================ */
+
+// Configuración de Supabase
+const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
+const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 /* ----------------------------------------------------------------
    INICIALIZACIÓN
@@ -102,11 +106,13 @@ async function handleLogin(e) {
     const user = await checkUser(email, password); // ← Reemplazar con Supabase
 
     if (user) {
-      /* Guardar sesión mínima en localStorage.
-         Con Supabase este paso es automático (maneja tokens internamente). */
+      /* Guardar sesión en localStorage con datos del usuario */
       localStorage.setItem('userLogged', JSON.stringify({
         email: user.email,
-        name:  user.name,
+        name: user.name,
+        cedula: user.cedula,
+        rol: user.rol,
+        celular: user.celular,
         logged: true,
       }));
 
@@ -128,27 +134,40 @@ async function handleLogin(e) {
 }
 
 /* ----------------------------------------------------------------
-   CHECK USER (TEMPORAL – solo para desarrollo / pruebas)
-   
-   ⚠️  ELIMINAR cuando se integre Supabase.
-      Esta función simula una autenticación asíncrona con un delay
-      para imitar el comportamiento real de una petición a la API.
+   CHECK USER - Autenticación con Supabase
+   Busca el usuario en la tabla "usuario" y valida la contraseña.
    ---------------------------------------------------------------- */
-function checkUser(email, password) {
-  /* Usuarios de prueba hardcodeados */
-  const MOCK_USERS = {
-    'kevin@gmail.com':      { password: '123456', name: 'Kevin' },
-    'maria@gmail.com':      { password: '123456', name: 'María' },
-    'demo@backtome.com':    { password: 'demo123', name: 'Demo User' },
-  };
+async function checkUser(email, password) {
+  try {
+    /* 1. Buscar usuario por correo */
+    const { data: user, error } = await supabaseClient
+      .from('usuario')
+      .select('*')
+      .eq('correo', email)
+      .single();
 
-  /* Simula latencia de red (1.2 s) */
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const found = MOCK_USERS[email];
-      resolve(found && found.password === password ? { email, name: found.name } : null);
-    }, 1200);
-  });
+    if (error || !user) {
+      return null; // Usuario no encontrado
+    }
+
+    /* 2. Validar contraseña */
+    if (user.contrasena !== password) {
+      return null; // Contraseña incorrecta
+    }
+
+    /* 3. Retornar datos del usuario (sin la contraseña) */
+    return {
+      email: user.correo,
+      name: user.nombre,
+      cedula: user.cedula,
+      rol: user.rol,
+      celular: user.celular
+    };
+
+  } catch (err) {
+    console.error('Error en checkUser:', err);
+    return null;
+  }
 }
 
 /* ----------------------------------------------------------------
