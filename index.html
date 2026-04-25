@@ -63,7 +63,8 @@
         <!-- DERECHA -->
         <div class="d-flex align-items-center gap-2">
 
-          <button class="btn btn-outline-primary btn-sm d-none d-md-flex">
+          <button class="btn btn-outline-primary btn-sm d-none d-md-flex"
+            data-bs-toggle="modal" data-bs-target="#searchModal">
             <i class="bi bi-search"></i> Buscar
           </button>
 
@@ -75,7 +76,6 @@
             Registrarse
           </button>
 
-          <!-- Busca este botón y reemplázalo -->
           <button class="border-0 bg-transparent" id="btnOpenMenu"
             style="display: none;">
             <i class="bi bi-person-circle fs-4"></i>
@@ -131,7 +131,6 @@
     <!-- ============================================================
        ESTADÍSTICAS
        4 métricas clave de la plataforma.
-       TODO: reemplazar valores hardcodeados con datos de Supabase.
        ============================================================ -->
     <section class="stats-section py-5"
       aria-label="Estadísticas de la plataforma">
@@ -291,7 +290,7 @@
             </p>
           </div>
           <div class="col-md-6 text-md-end mt-2 mt-md-0">
-            <!-- TODO: enlazar a páginas reales -->
+            <!--despues enlazar  a los archivos reales-->
             <a href="#" class="footer-link me-3">Términos</a>
             <a href="#" class="footer-link me-3">Privacidad</a>
             <a href="#" class="footer-link">Contacto</a>

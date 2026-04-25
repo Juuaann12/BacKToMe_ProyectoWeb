@@ -1,114 +1,280 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <!-- ============================================================
+  <head>
+    <!-- ============================================================
        META & CONFIGURACIÓN BÁSICA
        ============================================================ -->
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BackToMe – Panel de administración">
-  <title>BackToMe – Panel de Administrador</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BackToMe – Panel de administración">
+    <title>BackToMe – Panel de Administrador</title>
 
-  <!-- Bootstrap 5.3 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons 1.11 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <!-- Google Fonts – Nunito -->
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <!-- Estilos propios -->
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <!-- Bootstrap 5.3 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
+    <!-- Bootstrap Icons 1.11 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet">
+    <!-- Google Fonts – Nunito -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet">
+    <!-- Estilos propios (compartido con index.html) -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
 
-  <!-- ============================================================
+    <!-- ============================================================
        NAVBAR
-       Solo logo
+       Logo + apertura del menú lateral.
        ============================================================ -->
-  <nav class="btm-navbar navbar px-4 py-2">
-    <!-- Logo -->
-    <a href="index.html" class="btm-logo">
-      <div class="btm-logo-img">
-        <img src="imagenes/logo.png" alt="BackToMe" width="38" height="38">
-      </div>
-      <span class="btm-logo-text">
-        <span class="bold-part">Back</span><span class="light-part">ToMe</span>
-      </span>
-    </a>
-  </nav>
+    <nav class="btm-navbar navbar px-4 py-2" role="navigation"
+      aria-label="Navegación principal">
 
-  <!-- ============================================================
+      <!-- Logo -->
+      <a href="index.html" class="btm-logo" aria-label="Volver al inicio">
+        <div class="btm-logo-img">
+          <img src="imagenes/logo.png" alt="BackToMe" width="38" height="38">
+        </div>
+        <span class="btm-logo-text">
+          <span class="bold-part">Back</span><span
+            class="light-part">ToMe</span>
+        </span>
+      </a>
+
+      <!-- Apertura menú lateral -->
+      <button
+        class="navbar-toggler border-0"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#menuLateral"
+        aria-controls="menuLateral"
+        aria-label="Abrir menú de usuario">
+        <i class="bi bi-list fs-4 text-secondary" aria-hidden="true"></i>
+      </button>
+
+    </nav>
+
+    <!-- ============================================================
+       MENÚ LATERAL (Offcanvas)
+       Idéntico en estructura al de index.html.
+       TODO: reemplazar datos hardcodeados con sesión de Supabase.
+       ============================================================ -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="menuLateral"
+      aria-labelledby="menuLateralLabel">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="menuLateralLabel">Mi cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+          aria-label="Cerrar menú"></button>
+      </div>
+      <div class="offcanvas-body">
+
+        <!-- Info de usuario -->
+        <div class="mb-4">
+          <strong>kevin@gmail.com</strong>
+          <p class="text-muted small mb-0">Administrador</p>
+        </div>
+
+        <!-- Navegación -->
+        <ul class="menu" role="menu">
+          <li role="menuitem">
+            <a href="index.html" class="menu-link">
+              <i class="bi bi-house" aria-hidden="true"></i> Inicio
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-upload" aria-hidden="true"></i> Publicar objeto
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-search" aria-hidden="true"></i> Buscar objetos
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-file-text" aria-hidden="true"></i> Mis
+              publicaciones
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-chat" aria-hidden="true"></i> Mensajes
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-person" aria-hidden="true"></i> Perfil
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="admin.html" class="menu-link active">
+              <i class="bi bi-shield-lock" aria-hidden="true"></i> Panel Admin
+            </a>
+          </li>
+        </ul>
+
+        <hr>
+
+        <!-- TODO: conectar con supabase.auth.signOut() -->
+        <button class="logout btn-link border-0 bg-transparent" id="btnLogout">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+        </button>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
        CONTENIDO PRINCIPAL
        ============================================================ -->
-  <main class="container-fluid px-4 py-4">
+    <main class="btm-main container-fluid px-4 py-4" role="main">
 
-    <!-- Encabezado -->
-    <div class="mb-4">
-      <h2 class="fw-bold">
-        <i class="bi bi-shield-check text-primary me-2"></i>Panel de Administración
-      </h2>
-      <p class="text-muted mb-0">Estadísticas de la plataforma</p>
-    </div>
-
-    <!-- Tarjetas de estadísticas -->
-    <div class="row g-3 mb-4">
-      <!-- Total usuarios -->
-      <div class="col-12 col-sm-6 col-xl-3">
-        <div class="stat-card">
-          <div class="stat-info">
-            <p class="stat-label">Total usuarios</p>
-            <p class="stat-value">892</p>
-          </div>
-          <div class="stat-icon icon-users">
-            <i class="bi bi-people-fill"></i>
-          </div>
-        </div>
+      <!-- ----------------------------------------------------------
+         ENCABEZADO DEL PANEL
+         ---------------------------------------------------------- -->
+      <div class="mb-4">
+        <h2 class="fw-bold">
+          <i class="bi bi-shield-check text-primary me-2"
+            aria-hidden="true"></i>Panel de Administración
+        </h2>
+        <p class="text-muted mb-0">Gestiona usuarios y contenido de la
+          plataforma</p>
       </div>
 
-      <!-- Total publicaciones -->
-      <div class="col-12 col-sm-6 col-xl-3">
-        <div class="stat-card">
-          <div class="stat-info">
-            <p class="stat-label">Total publicaciones</p>
-            <p class="stat-value">1,247</p>
-          </div>
-          <div class="stat-icon icon-posts">
-            <i class="bi bi-file-earmark-text-fill"></i>
-          </div>
-        </div>
+      <!-- Alerta de zona restringida -->
+      <div class="btm-alert-admin d-flex align-items-center gap-2 p-3 mb-4"
+        role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"
+          aria-hidden="true"></i>
+        <p class="mb-0 small">
+          <strong>Zona de administración:</strong>
+          Las acciones realizadas aquí afectan a todos los usuarios. Procede con
+          precaución.
+        </p>
       </div>
 
-      <!-- Nuevos hoy -->
-      <div class="col-12 col-sm-6 col-xl-3">
-        <div class="stat-card">
-          <div class="stat-info">
-            <p class="stat-label">Nuevos hoy</p>
-            <p class="stat-value">47</p>
-          </div>
-          <div class="stat-icon icon-new">
-            <i class="bi bi-shield-check"></i>
+      <!-- ----------------------------------------------------------
+         TARJETAS DE ESTADÍSTICAS
+         Los valores se actualizan desde admin.js (o Supabase).
+         TODO: conectar a Supabase para datos reales.
+         ---------------------------------------------------------- -->
+      <div class="row g-3 mb-4">
+
+        <!-- Total usuarios -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card">
+            <div class="stat-info">
+              <p class="stat-label">Total usuarios</p>
+              <p class="stat-value" id="statUsuarios">0</p>
+            </div>
+            <div class="stat-icon icon-users">
+              <i class="bi bi-people-fill" aria-hidden="true"></i>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Reportes -->
-      <div class="col-12 col-sm-6 col-xl-3">
-        <div class="stat-card">
-          <div class="stat-info">
-            <p class="stat-label">Reportes</p>
-            <p class="stat-value">3</p>
-          </div>
-          <div class="stat-icon icon-reports">
-            <i class="bi bi-exclamation-triangle-fill"></i>
+        <!-- Total publicaciones -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card">
+            <div class="stat-info">
+              <p class="stat-label">Total publicaciones</p>
+              <p class="stat-value" id="statPublicaciones">0</p>
+            </div>
+            <div class="stat-icon icon-posts">
+              <i class="bi bi-file-earmark-text-fill" aria-hidden="true"></i>
+            </div>
           </div>
         </div>
+
+        <!-- Nuevos hoy -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card">
+            <div class="stat-info">
+              <p class="stat-label">Nuevos hoy</p>
+              <p class="stat-value" id="statNuevos">0</p>
+            </div>
+            <div class="stat-icon icon-new">
+              <i class="bi bi-shield-check" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reportes -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card">
+            <div class="stat-info">
+              <p class="stat-label">Reportes</p>
+              <p class="stat-value" id="statReportes">0</p>
+            </div>
+            <div class="stat-icon icon-reports">
+              <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
 
-  </main>
+      <!-- ----------------------------------------------------------
+         GESTIÓN DE CONTENIDO
+         Tabs: Usuarios / Publicaciones + Buscador + Lista dinámica.
+         ---------------------------------------------------------- -->
+      <div class="card p-4 shadow-sm gestion-contenido">
 
-  <!-- ============================================================
+        <h5 class="fw-bold">Gestión de contenido</h5>
+        <p class="text-muted small">Administra usuarios y publicaciones de la
+          plataforma</p>
+
+        <!-- Tabs de navegación -->
+        <div class="tabs mt-3" role="tablist">
+          <button
+            class="tab active"
+            id="tabUsuarios"
+            role="tab"
+            aria-selected="true"
+            aria-controls="lista"
+            onclick="cambiarTab('usuarios', this)">
+            <i class="bi bi-people me-1" aria-hidden="true"></i>Usuarios
+          </button>
+          <button
+            class="tab"
+            id="tabPublicaciones"
+            role="tab"
+            aria-selected="false"
+            aria-controls="lista"
+            onclick="cambiarTab('publicaciones', this)">
+            <i class="bi bi-file-earmark-text me-1"
+              aria-hidden="true"></i>Publicaciones
+          </button>
+        </div>
+
+        <!-- Buscador -->
+        <div class="search-box mt-3">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="buscador"
+            placeholder="Buscar usuarios..."
+            aria-label="Buscar en la lista"
+            onkeyup="filtrar()">
+        </div>
+
+        <!-- Lista dinámica: llenada por admin.js -->
+        <div id="lista" class="mt-3" role="list" aria-live="polite"></div>
+
+      </div>
+
+    </main>
+
+    <!-- ============================================================
        SCRIPTS
+       Bootstrap Bundle + lógica del panel en admin.js
        ============================================================ -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin.js"></script>
+  </body>
 </html>
