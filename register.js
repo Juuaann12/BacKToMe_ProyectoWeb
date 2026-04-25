@@ -1,9 +1,7 @@
-/* ================================================================
-   REGISTER.JS  –  BackToMe · Lógica de registro de usuarios
-
-   FLUJO ACTUAL  →  validación local + localStorage (solo pruebas).
-   FLUJO FUTURO  →  reemplazar registerUser() por Supabase Auth.
-   ================================================================ */
+// Configuración de Supabase
+const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
+const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 /* ----------------------------------------------------------------
    INICIALIZACIÓN
@@ -82,7 +80,8 @@ function validateCedulaField() {
   const cedulaInput = document.getElementById('cedula');
   const cedula = cedulaInput.value;
 
-  const isValid = cedula.length === 10 && validateCedulaEcuatoriana(cedula);
+  // Acepta cualquier cantidad de dígitos (mínimo 1)
+  const isValid = cedula.length >= 1 && validateCedulaEcuatoriana(cedula);
   
   cedulaInput.setCustomValidity(isValid ? '' : 'Cédula inválida');
   cedulaInput.classList.toggle('is-invalid', !isValid);
@@ -90,37 +89,14 @@ function validateCedulaField() {
 }
 
 /* ----------------------------------------------------------------
-   ALGORITMO OFICIAL DE VALIDACIÓN DE CÉDULA ECUATORIANA
-   Implementación del algoritmo del Registro Civil de Ecuador.
+   VALIDACIÓN DE CÉDULA
+   Acepta cualquier número de dígitos (solo números).
    ---------------------------------------------------------------- */
 function validateCedulaEcuatoriana(cedula) {
-  if (cedula.length !== 10 || !/^[0-9]{10}$/.test(cedula)) {
-    return false;
-  }
-
-  // Algoritmo oficial del Registro Civil
-  const digitos = cedula.split('').map(Number);
-  const provincia = parseInt(cedula.substring(0, 2));
-  
-  // Verificar provincia (01-24 Ecuador continental, 30-30 Galápagos)
-  if (provincia < 1 || (provincia > 24 && provincia !== 30)) {
-    return false;
-  }
-
-  // Cálculo del dígito verificador
-  let suma = 0;
-  let multi = 2;
-  
-  for (let i = digitos.length - 2; i >= 0; i--) {
-    suma += digitos[i] * multi;
-    multi = multi === 2 ? 1 : 2;
-  }
-  
-  const residuo = suma % 10;
-  const digitoVerificador = residuo === 0 ? 0 : 10 - residuo;
-  
-  return digitos[9] === digitoVerificador;
+  // Solo acepta dígitos, sin límite de longitud
+  return /^[0-9]+$/.test(cedula) && cedula.length > 0;
 }
+
 
 /* ----------------------------------------------------------------
    FORMULARIO DE REGISTRO
@@ -251,37 +227,59 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
 }
 
 /* ----------------------------------------------------------------
-   REGISTRO DE USUARIO (TEMPORAL – solo para desarrollo)
-
-   ⚠️  ELIMINAR cuando se integre Supabase.
-      Usa localStorage como base de datos temporal.
-      Devuelve un objeto { success, message } para manejo uniforme.
+   REGISTRO DE USUARIO CON SUPABASE
+   Guarda el usuario en la tabla "usuario" de Supabase.
    ---------------------------------------------------------------- */
-function registerUser({ name, email, cedula, phone, password }) {  // ⭐ Cédula incluida
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      /* Verificar si el correo ya está registrado */
-      if (localStorage.getItem(`user_${email}`)) {
-        resolve({ success: false, message: 'El correo ya está registrado' });
-        return;
-      }
+async function registerUser({ name, email, cedula, phone, password }) {
+  try {
+    /* 1. Verificar si el correo ya existe */
+    const { data: existingEmail, error: emailError } = await supabaseClient
+      .from('usuario')
+      .select('correo')
+      .eq('correo', email)
+      .single();
 
-      /* ⭐ Verificar si la cédula ya está registrada */
-      const existingUsers = Object.keys(localStorage)
-        .filter(key => key.startsWith('user_'))
-        .map(key => JSON.parse(localStorage.getItem(key)))
-        .filter(user => user.cedula === cedula);
+    if (existingEmail) {
+      return { success: false, message: 'El correo ya está registrado' };
+    }
 
-      if (existingUsers.length > 0) {
-        resolve({ success: false, message: 'La cédula ya está registrada' });
-        return;
-      }
+    /* 2. Verificar si la cédula ya existe */
+    const { data: existingCedula, error: cedulaError } = await supabaseClient
+      .from('usuario')
+      .select('cedula')
+      .eq('cedula', cedula)
+      .single();
 
-      /* Guardar usuario (sin guardar contraseña en texto plano en producción) */
-      localStorage.setItem(`user_${email}`, JSON.stringify({ name, email, cedula, phone }));
-      resolve({ success: true });
-    }, 1200); /* Simula latencia de red */
-  });
+    if (existingCedula) {
+      return { success: false, message: 'La cédula ya está registrada' };
+    }
+
+    /* 3. Insertar usuario en la tabla "usuario" */
+    const { error: insertError } = await supabaseClient
+      .from('usuario')
+      .insert([
+        {
+          cedula: cedula,
+          nombre: name,
+          correo: email,
+          contrasena: password,  // ⚠️ En producción, usar hash del lado del servidor
+          celular: phone,
+          rol: 'usuario',
+          foto_perfil: null,
+          foto_cedula: null
+        }
+      ]);
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return { success: true };
+
+  } catch (err) {
+    console.error('Error en registro:', err);
+    return { success: false, message: err.message || 'Error al registrar usuario' };
+  }
 }
 
 /* ----------------------------------------------------------------
