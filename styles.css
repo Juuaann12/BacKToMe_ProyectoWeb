@@ -381,12 +381,22 @@ body {
   margin-bottom: 10px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   transition: box-shadow 0.2s ease;
 }
 
 .item:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Tarjeta de usuario con todos los datos */
+.usuario-card {
+  flex: 1;
+  margin-right: 15px;
+}
+
+.usuario-card .row > div {
+  margin-bottom: 8px;
 }
 
 /* Badge de rol */

@@ -30,7 +30,7 @@ let publicacionesRecientes = [
     tipo: 'perdido',
     lugar: 'Terminal de Transportes',
     fecha: 'hace 1 día',
-    imagen: 'imagenes/logo.png',
+    imagen: 'imagenes/objeto3.jpg',
     recompensa: '20000',
   }
 ];
@@ -391,7 +391,7 @@ function initAuthUI() {
   const btnRegister = document.querySelector('.btn-primary');
   const adminLink = document.querySelector('a[href="admin.html"]');
   
-  console.log('🔐 Verificando sesión:', user ? `Usuario: ${user.email} | Rol: ${user.rol}` : 'No hay sesión');
+  console.log('🔐 Verificando sesión:', user ? `Usuario: ${user.email}, Rol: ${user.rol}` : 'No hay sesión');
   
   if (user && user.email) {
     // ✅ USUARIO LOGUEADO
@@ -407,7 +407,7 @@ function initAuthUI() {
     // 🔒 Ocultar Panel Admin si no es administrador
     if (adminLink) {
       if (user.rol === 'admin') {
-        adminLink.style.display = 'block';
+        adminLink.style.display = 'flex';
         console.log('✅ Panel Admin: VISIBLE (usuario admin)');
       } else {
         adminLink.style.display = 'none';
