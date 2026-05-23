@@ -188,7 +188,7 @@
     <!-- ============================================================
        PUBLICACIONES RECIENTES
        Las tarjetas se renderizan con JS (función renderPublicaciones).
-       TODO: cargar datos reales desde Supabase.
+       Los datos deben venir de backend PHP.
        ============================================================ -->
     <section class="container-fluid px-4 py-5"
       aria-label="Publicaciones recientes">
@@ -302,7 +302,7 @@
     <!-- ============================================================
        MENÚ LATERAL (Offcanvas)
        Compartido con admin.html en estructura.
-       TODO: reemplazar email hardcodeado con datos de sesión Supabase.
+       Los datos de sesión deben provenir de backend PHP.
        ============================================================ -->
     <div class="offcanvas offcanvas-end" tabindex="-1" id="menuLateral"
       aria-labelledby="menuLateralLabel">
@@ -363,7 +363,7 @@
 
         <hr>
 
-        <!-- TODO: conectar logout con supabase.auth.signOut() -->
+        <!-- Logout usa el endpoint PHP /api/logout.php -->
         <button class="logout btn-link border-0 bg-transparent" id="btnLogout">
           <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
         </button>
@@ -514,7 +514,8 @@
                     aria-hidden="true"></i>
                   <p class="mb-0 text-muted">Arrastra fotos aquí o haz clic para
                     seleccionar</p>
-                  <input type="file" class="d-none" id="inputFotos" multiple
+                  <input type="file" class="d-none" id="inputFotos"
+                    name="imagenes[]" multiple
                     accept="image/*" aria-label="Seleccionar fotos">
                   <div class="row mt-3 g-2" id="previewFotos"></div>
                 </div>
@@ -670,7 +671,7 @@
                 </select>
               </div>
 
-              <!-- TODO: renderizar resultados dinámicamente desde Supabase -->
+              <!-- Resultados renderizados dinámicamente desde backend PHP -->
               <div
                 class="resultado-item p-3 border rounded-3 bg-white shadow-sm mb-3">
                 <div class="d-flex align-items-center">

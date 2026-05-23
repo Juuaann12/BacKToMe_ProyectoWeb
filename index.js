@@ -43,19 +43,19 @@ let filtroActivo = 'todos';
 /* ----------------------------------------------------------------
    INIT
    ---------------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 BackToMe Iniciado');
   
   renderPublicaciones();
   initDropzone();
   initFiltrosMenu();
   initFiltrosModal();
-  initAuthUI();        
+  await initAuthUI();
   initLogout();
   initAuthButtons();
-  initSearchModal();   
-  initPublicarForm();  
-  initNavbarActive();  
+  initSearchModal();
+  initPublicarForm();
+  initNavbarActive();
 });
 
 /* ================================================================
@@ -322,79 +322,105 @@ function mostrarResultadosBusqueda(resultados) {
 function initPublicarForm() {
   const form = document.getElementById('publicarForm');
   const btnPublicar = document.querySelector('#publicarModal button[type="submit"]');
-  
+
   if (!form) return;
-  
-  btnPublicar?.addEventListener('click', (e) => {
+
+  btnPublicar?.addEventListener('click', async (e) => {
     e.preventDefault();
-    
-    const user = JSON.parse(localStorage.getItem('userLogged'));
-    if (!user) {
+
+    const session = await getSession();
+    if (!session.logged) {
       alert('⚠️ Debes iniciar sesión para publicar un objeto');
       window.location.href = 'login.html';
       return;
     }
-    
-    const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
-    const titulo = document.getElementById('pubTitulo')?.value;
-    const descripcion = document.getElementById('descripcion')?.value;
-    const lugar = document.getElementById('lugar')?.value;
-    const recompensa = document.getElementById('recompensa')?.value;
-    
+
+    const tipo = document.querySelector('input[name="tipo"]:checked')?.value || 'perdido';
+    const titulo = document.getElementById('pubTitulo')?.value.trim();
+    const descripcion = document.getElementById('descripcion')?.value.trim();
+    const lugar = document.getElementById('lugar')?.value.trim();
+    const recompensa = document.getElementById('recompensa')?.value.trim();
+    const inputFotos = document.getElementById('inputFotos');
+
     if (!titulo || !descripcion || !lugar) {
       alert('⚠️ Completa: Título, Descripción y Lugar');
       return;
     }
-    
-    const nuevaPublicacion = {
-      id: publicacionesRecientes.length + 1,
-      titulo: titulo,
-      tipo: tipo || 'perdido',
-      lugar: lugar,
-      fecha: 'hace unos segundos',
-      imagen: 'imagenes/logo.png',
-      recompensa: recompensa || null,
-      usuario: user.email
-    };
-    
-    publicacionesRecientes.unshift(nuevaPublicacion);
-    form.reset();
-    document.getElementById('previewFotos').innerHTML = '';
-    
-    // Cerrar modal de forma segura
-    const modalElement = document.getElementById('publicarModal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    if (modal) {
-      modal.hide();
+
+    const formData = new FormData(form);
+    formData.append('tipo', tipo);
+    formData.append('titulo', titulo);
+    formData.append('descripcion', descripcion);
+    formData.append('lugar', lugar);
+    formData.append('recompensa', recompensa || '');
+
+    if (inputFotos?.files?.length) {
+      Array.from(inputFotos.files).forEach((file, index) => {
+        formData.append(`imagenes[]`, file);
+      });
     }
-    // Forzar limpieza del backdrop si queda pegado
-    setTimeout(() => {
-      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
-    }, 300);
-    
-    renderPublicaciones();
-    alert('✅ ¡Publicación creada con éxito!');
+
+    try {
+      const response = await fetch('api/create_publicacion.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Error creando publicación');
+      }
+
+      const nuevaPublicacion = {
+        id: result.publicacion?.id || publicacionesRecientes.length + 1,
+        titulo,
+        tipo,
+        lugar,
+        fecha: 'hace unos segundos',
+        imagen: result.publicacion?.imagen || 'imagenes/logo.png',
+        recompensa: recompensa || null,
+        usuario: session.user.email
+      };
+
+      publicacionesRecientes.unshift(nuevaPublicacion);
+      renderPublicaciones();
+      form.reset();
+      document.getElementById('previewFotos').innerHTML = '';
+
+      const modalElement = document.getElementById('publicarModal');
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      if (modal) modal.hide();
+
+      setTimeout(() => {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+      }, 300);
+
+      alert('✅ ¡Publicación creada con éxito!');
+    } catch (err) {
+      console.error('Error creando publicación:', err);
+      alert(err.message || 'Ocurrió un error al crear la publicación');
+    }
   });
 }
 
 /* ================================================================
    🔹 AUTENTICACIÓN - 🔥 CONTROL DEL BOTÓN DEL MENÚ 🔥
    ================================================================ */
-function initAuthUI() {
-  const user = JSON.parse(localStorage.getItem('userLogged'));
+async function initAuthUI() {
+  const session = await getSession();
   const btnOpenMenu = document.getElementById('btnOpenMenu');
   const userEmailSpan = document.querySelector('#menuLateral .offcanvas-body .mb-4 strong');
   const btnLogin = document.querySelector('.btn-outline-secondary');
   const btnRegister = document.querySelector('.btn-primary');
   const adminLink = document.querySelector('a[href="admin.html"]');
-  
-  console.log('🔐 Verificando sesión:', user ? `Usuario: ${user.email}, Rol: ${user.rol}` : 'No hay sesión');
-  
-  if (user && user.email) {
-    // ✅ USUARIO LOGUEADO
+
+  console.log('🔐 Verificando sesión:', session.logged ? `Usuario: ${session.user.email}, Rol: ${session.user.rol}` : 'No hay sesión');
+
+  if (session.logged) {
     if (btnOpenMenu) {
       btnOpenMenu.style.display = 'block';
       btnOpenMenu.style.visibility = 'visible';
@@ -402,11 +428,10 @@ function initAuthUI() {
     }
     if (btnLogin) btnLogin.style.display = 'none';
     if (btnRegister) btnRegister.style.display = 'none';
-    if (userEmailSpan) userEmailSpan.textContent = user.email;
-    
-    // 🔒 Ocultar Panel Admin si no es administrador
+    if (userEmailSpan) userEmailSpan.textContent = session.user.email;
+
     if (adminLink) {
-      if (user.rol === 'admin') {
+      if (session.user.rol === 'admin') {
         adminLink.style.display = 'flex';
         console.log('✅ Panel Admin: VISIBLE (usuario admin)');
       } else {
@@ -415,7 +440,6 @@ function initAuthUI() {
       }
     }
   } else {
-    // ❌ NO LOGUEADO
     if (btnOpenMenu) {
       btnOpenMenu.style.display = 'none';
       btnOpenMenu.style.visibility = 'hidden';
@@ -425,12 +449,10 @@ function initAuthUI() {
     if (btnRegister) btnRegister.style.display = 'inline-block';
     if (adminLink) adminLink.style.display = 'none';
   }
-  
-  // Inicializar offcanvas de forma segura
+
   if (btnOpenMenu) {
     const menuLateral = document.getElementById('menuLateral');
     if (menuLateral) {
-      // Usar getOrCreateInstance para evitar duplicar instancias
       const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(menuLateral);
       btnOpenMenu.addEventListener('click', (e) => {
         e.preventDefault();
@@ -462,8 +484,23 @@ function initAuthButtons() {
 function initLogout() {
   const btn = document.getElementById('btnLogout');
 
-  btn?.addEventListener('click', () => {
-    localStorage.removeItem('userLogged');
+  btn?.addEventListener('click', async () => {
+    await fetch('api/logout.php', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
     window.location.reload();
   });
+}
+
+async function getSession() {
+  try {
+    const response = await fetch('api/get_session.php', {
+      credentials: 'same-origin'
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('Error al consultar sesión:', err);
+    return { logged: false };
+  }
 }

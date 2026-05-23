@@ -1,17 +1,9 @@
 /* ================================================================
    LOGIN.JS  –  BackToMe · Lógica de autenticación
-   
-   CONEXIÓN:  Supabase - Tabla usuario
    ================================================================ */
-
-// Configuración de Supabase
-const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 /* ----------------------------------------------------------------
    INICIALIZACIÓN
-   Espera a que el DOM esté listo antes de registrar eventos.
    ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
@@ -20,29 +12,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ----------------------------------------------------------------
    TOGGLE CONTRASEÑA
-   Alterna el tipo del input entre "password" y "text",
-   y actualiza el ícono correspondiente.
    ---------------------------------------------------------------- */
 function initTogglePassword() {
-  const toggleBtn   = document.getElementById('togglePassword');
+  const toggleBtn = document.getElementById('togglePassword');
   const passwordInput = document.getElementById('password');
-  const passIcon    = document.getElementById('passIcon');
+  const passIcon = document.getElementById('passIcon');
 
-  if (!toggleBtn || !passwordInput || !passIcon) return; // Guardia defensiva
+  if (!toggleBtn || !passwordInput || !passIcon) return;
 
   toggleBtn.addEventListener('click', () => {
     const isPassword = passwordInput.type === 'password';
     passwordInput.type = isPassword ? 'text' : 'password';
-
-    // Intercambia el ícono ojo abierto ↔ ojo cerrado
-    passIcon.classList.toggle('bi-eye',       !isPassword);
-    passIcon.classList.toggle('bi-eye-slash',  isPassword);
+    passIcon.classList.toggle('bi-eye', !isPassword);
+    passIcon.classList.toggle('bi-eye-slash', isPassword);
   });
 }
 
 /* ----------------------------------------------------------------
    FORMULARIO DE LOGIN
-   Escucha el submit y delega en handleLogin().
    ---------------------------------------------------------------- */
 function initLoginForm() {
   const loginForm = document.getElementById('loginForm');
@@ -53,19 +40,13 @@ function initLoginForm() {
 
 /* ----------------------------------------------------------------
    HANDLER PRINCIPAL DE LOGIN
-   1. Previene recarga de página.
-   2. Recoge y valida datos del formulario.
-   3. Muestra estado de carga.
-   4. Llama al servicio de autenticación.
-   5. Redirige o muestra error según resultado.
    ---------------------------------------------------------------- */
 async function handleLogin(e) {
   e.preventDefault();
 
-  const email    = document.getElementById('email').value.trim();
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
 
-  /* --- Validaciones del lado del cliente --- */
   if (!email || !password) {
     showError('Completa todos los campos');
     return;
@@ -76,120 +57,43 @@ async function handleLogin(e) {
     return;
   }
 
-  /* --- Referencias al botón (para manejo del estado de carga) --- */
-  const btn       = document.querySelector('.btn-login');
-  const btnText   = document.querySelector('.btn-text');
+  const btn = document.querySelector('.btn-login');
+  const btnText = document.querySelector('.btn-text');
   const btnLoader = document.querySelector('.btn-loader');
 
   setLoading(true, btn, btnText, btnLoader);
 
   try {
-    /* ============================================================
-       AUTENTICACIÓN
-       ─────────────────────────────────────────────────────────────
-       ACTUAL:  checkUser() → busca en objeto local (solo pruebas).
-       SUPABASE: descomentar el bloque de abajo y eliminar checkUser.
+    const response = await fetch('api/login.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password })
+    });
 
-       ── Con Supabase ──────────────────────────────────────────────
-       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-       const supabase = createClient(
-         'https://TU_PROJECT_ID.supabase.co',
-         'TU_ANON_PUBLIC_KEY'
-       );
-
-       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-       if (error) throw new Error(error.message);
-       const user = data.user;
-       ─────────────────────────────────────────────────────────────
-    ============================================================ */
-    const user = await checkUser(email, password); // ← Reemplazar con Supabase
-
-    if (user) {
-      /* Guardar sesión en localStorage con datos del usuario */
-      localStorage.setItem('userLogged', JSON.stringify({
-        email: user.email,
-        name: user.name,
-        cedula: user.cedula,
-        rol: user.rol,
-        celular: user.celular,
-        logged: true,
-      }));
-
-      // Redirigir al inicio
-      window.location.href = 'index.html';
-    } else {
-      showError('Correo o contraseña incorrectos');
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Correo o contraseña incorrectos');
     }
 
+    window.location.href = 'index.html';
   } catch (err) {
-    /* Captura errores de red o de Supabase */
     console.error('Error en login:', err);
     showError(err.message || 'Ocurrió un error. Intenta de nuevo.');
-
   } finally {
-    /* Siempre restaurar el botón, aunque haya error */
     setLoading(false, btn, btnText, btnLoader);
-  }
-}
-
-/* ----------------------------------------------------------------
-   CHECK USER - Autenticación con Supabase
-   Busca el usuario en la tabla "usuario" y valida la contraseña.
-   ---------------------------------------------------------------- */
-async function checkUser(email, password) {
-  try {
-    /* 1. Buscar usuario por correo */
-    const { data: user, error } = await supabaseClient
-      .from('usuario')
-      .select('*')
-      .eq('correo', email)
-      .single();
-
-    if (error || !user) {
-      return null; // Usuario no encontrado
-    }
-
-    /* 2. Validar contraseña */
-    if (user.contrasena !== password) {
-      return null; // Contraseña incorrecta
-    }
-
-    /* 3. Retornar datos del usuario (sin la contraseña) */
-    return {
-      email: user.correo,
-      name: user.nombre,
-      cedula: user.cedula,
-      rol: user.rol,
-      celular: user.celular
-    };
-
-  } catch (err) {
-    console.error('Error en checkUser:', err);
-    return null;
   }
 }
 
 /* ----------------------------------------------------------------
    UTILIDADES
    ---------------------------------------------------------------- */
-
-/**
- * Valida formato básico de correo electrónico.
- * @param {string} email
- * @returns {boolean}
- */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/**
- * Muestra u oculta el mensaje de error en pantalla.
- * Se oculta automáticamente después de 5 segundos.
- * @param {string} message - Texto a mostrar al usuario.
- */
 function showError(message) {
-  const errorDiv  = document.getElementById('errorMessage');
+  const errorDiv = document.getElementById('errorMessage');
   const errorText = document.getElementById('errorText');
 
   if (!errorDiv || !errorText) return;
@@ -197,20 +101,12 @@ function showError(message) {
   errorText.textContent = message;
   errorDiv.classList.remove('d-none');
 
-  /* Auto-cierre después de 5 s */
-  clearTimeout(showError._timer); // Cancela timer previo si existía
+  clearTimeout(showError._timer);
   showError._timer = setTimeout(() => errorDiv.classList.add('d-none'), 5000);
 }
 
-/**
- * Activa o desactiva el estado de carga del botón de login.
- * @param {boolean}     loading  - true → muestra spinner; false → muestra texto.
- * @param {HTMLElement} btn      - Botón submit.
- * @param {HTMLElement} btnText  - Elemento con el texto del botón.
- * @param {HTMLElement} btnLoader - Elemento con el spinner.
- */
 function setLoading(loading, btn, btnText, btnLoader) {
-  btn.disabled = loading;
-  btnText.classList.toggle('d-none',  loading);
-  btnLoader.classList.toggle('d-none', !loading);
+  if (btn) btn.disabled = loading;
+  if (btnText) btnText.classList.toggle('d-none', loading);
+  if (btnLoader) btnLoader.classList.toggle('d-none', !loading);
 }
