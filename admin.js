@@ -3,38 +3,40 @@
    Gestiona usuarios y publicaciones: tabs, filtro y render.
    ================================================================ */
 
-// Configuración de Supabase
-const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
 /* ----------------------------------------------------------------
    PROTECCIÓN DE RUTA
-   Solo permite acceso a usuarios con rol 'admin'
    ---------------------------------------------------------------- */
-function checkAdminAccess() {
-  const user = JSON.parse(localStorage.getItem('userLogged'));
-  
-  if (!user || !user.email) {
-    // No hay sesión → redirigir a login
+async function checkAdminAccess() {
+  try {
+    const response = await fetch('api/get_session.php', {
+      credentials: 'same-origin'
+    });
+    const result = await response.json();
+
+    if (!result.logged) {
+      window.location.href = 'login.html';
+      return false;
+    }
+
+    if ((result.user?.rol || '') !== 'admin') {
+      alert('⛔ Acceso restringido. Solo administradores.');
+      window.location.href = 'index.html';
+      return false;
+    }
+
+    window.currentUser = result.user;
+    return true;
+  } catch (err) {
+    console.error('Error verificando sesión:', err);
     window.location.href = 'login.html';
     return false;
   }
-  
-  if (user.rol !== 'admin') {
-    // No es admin → redirigir a inicio
-    alert('⛔ Acceso restringido. Solo administradores.');
-    window.location.href = 'index.html';
-    return false;
-  }
-  
-  return true;
 }
 
 /* ----------------------------------------------------------------
    ESTADO GLOBAL DEL PANEL
    ---------------------------------------------------------------- */
-let tipoActual = 'usuarios'; // Tab activo: 'usuarios' | 'publicaciones'
+let tipoActual = 'usuarios';
 let usuariosData = [];
 let publicacionesData = [];
 
@@ -42,41 +44,41 @@ let publicacionesData = [];
    INICIALIZACIÓN
    ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar acceso de administrador
-  if (!checkAdminAccess()) return;
-  
-  // Cargar datos desde Supabase
+  if (!await checkAdminAccess()) return;
+
   await cargarDatos();
-  
   actualizarEstadisticas();
   render();
   initLogout();
 });
 
 /* ----------------------------------------------------------------
-   CARGAR DATOS DESDE SUPABASE
+   CARGAR DATOS DESDE BACKEND
    ---------------------------------------------------------------- */
 async function cargarDatos() {
   try {
-    // Cargar usuarios
-    const { data: usuarios, error: errorUsuarios } = await supabaseClient
-      .from('usuario')
-      .select('*')
-      .order('nombre', { ascending: true });
-    
-    if (errorUsuarios) throw errorUsuarios;
-    usuariosData = usuarios || [];
-    
-    // Cargar publicaciones
-    const { data: publicaciones, error: errorPublicaciones } = await supabaseClient
-      .from('publicaciones')
-      .select('*');
-    
-    if (errorPublicaciones) throw errorPublicaciones;
-    publicacionesData = publicaciones || [];
-    
+    const usuariosResponse = await fetch('api/get_usuarios.php', {
+      credentials: 'same-origin'
+    });
+    const publicacionesResponse = await fetch('api/get_publicaciones.php', {
+      credentials: 'same-origin'
+    });
+
+    const usuariosResult = await usuariosResponse.json();
+    const publicacionesResult = await publicacionesResponse.json();
+
+    if (!usuariosResponse.ok || !usuariosResult.success) {
+      throw new Error(usuariosResult.message || 'Error al cargar usuarios');
+    }
+
+    if (!publicacionesResponse.ok || !publicacionesResult.success) {
+      throw new Error(publicacionesResult.message || 'Error al cargar publicaciones');
+    }
+
+    usuariosData = usuariosResult.usuarios || [];
+    publicacionesData = publicacionesResult.publicaciones || [];
+
     console.log('✅ Datos cargados:', usuariosData.length, 'usuarios,', publicacionesData.length, 'publicaciones');
-    
   } catch (err) {
     console.error('❌ Error cargando datos:', err);
     alert('Error al cargar datos. Revisa la consola.');
@@ -87,10 +89,10 @@ async function cargarDatos() {
    ESTADÍSTICAS – Actualiza los contadores del panel
    ---------------------------------------------------------------- */
 function actualizarEstadisticas() {
-  setStatValue('statUsuarios',      usuariosData.length);
+  setStatValue('statUsuarios', usuariosData.length);
   setStatValue('statPublicaciones', publicacionesData.length);
-  setStatValue('statNuevos',        0); // TODO: filtrar por fecha de hoy
-  setStatValue('statReportes',      0); // TODO: tabla de reportes en Supabase
+  setStatValue('statNuevos', 0);
+  setStatValue('statReportes', 0);
 }
 
 /**
@@ -277,28 +279,30 @@ function buildPublicacionHTML(pub, index) {
 
 /* ----------------------------------------------------------------
    ELIMINAR
-   Elimina de Supabase y actualiza la vista.
+   Elimina del sistema y actualiza la vista.
    ---------------------------------------------------------------- */
 async function eliminar(index) {
   const dato = tipoActual === 'usuarios' ? usuariosData[index] : publicacionesData[index];
-  
   if (!dato) return;
-  
+
   const confirmar = confirm(`¿Estás seguro de eliminar este ${tipoActual === 'usuarios' ? 'usuario' : 'publicación'}?`);
   if (!confirmar) return;
-  
+
   try {
-    let tabla = tipoActual === 'usuarios' ? 'usuario' : 'publicaciones';
-    let idCampo = tipoActual === 'usuarios' ? 'cedula' : 'id';
-    
-    const { error } = await supabaseClient
-      .from(tabla)
-      .delete()
-      .eq(idCampo, dato[idCampo]);
-    
-    if (error) throw error;
-    
-    // Actualizar array local
+    const tabla = tipoActual === 'usuarios' ? 'usuario' : 'publicaciones';
+    const idCampo = tipoActual === 'usuarios' ? 'cedula' : 'id';
+    const response = await fetch('api/delete.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ table: tabla, id: dato[idCampo] })
+    });
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Error al eliminar');
+    }
+
     if (tipoActual === 'usuarios') {
       usuariosData.splice(index, 1);
       setStatValue('statUsuarios', usuariosData.length);
@@ -306,36 +310,29 @@ async function eliminar(index) {
       publicacionesData.splice(index, 1);
       setStatValue('statPublicaciones', publicacionesData.length);
     }
-    
+
     render();
     alert('✅ Eliminado correctamente');
-    
   } catch (err) {
     console.error('❌ Error al eliminar:', err);
-    alert('Error al eliminar. Revisa la consola.');
+    alert(err.message || 'Error al eliminar. Revisa la consola.');
   }
 }
 
-/* ----------------------------------------------------------------
-   FILTRO – Búsqueda en tiempo real sobre los items renderizados
-   ---------------------------------------------------------------- */
 function filtrar() {
   const texto = document.getElementById('buscador')?.value.toLowerCase() ?? '';
   document.querySelectorAll('#lista .item').forEach(item => {
-    item.style.display = item.textContent.toLowerCase().includes(texto)
-      ? 'flex'
-      : 'none';
+    item.style.display = item.textContent.toLowerCase().includes(texto) ? 'flex' : 'none';
   });
 }
 
-/* ----------------------------------------------------------------
-   LOGOUT
-   TODO: reemplazar con supabase.auth.signOut() y redirect a login.
-   ---------------------------------------------------------------- */
 function initLogout() {
   const btn = document.getElementById('btnLogout');
-  btn?.addEventListener('click', () => {
-    localStorage.removeItem('userLogged');
+  btn?.addEventListener('click', async () => {
+    await fetch('api/logout.php', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
     window.location.href = 'login.html';
   });
 }

@@ -1,16 +1,11 @@
-// Configuración de Supabase
-const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+/* ================================================================
+   REGISTER.JS  –  BackToMe · Lógica de registro
+   ================================================================ */
 
-/* ----------------------------------------------------------------
-   INICIALIZACIÓN
-   Espera a que el DOM esté listo antes de registrar eventos.
-   ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
   initConfirmPasswordValidation();
-  initCedulaValidation();  // ⭐ NUEVO: Validación en tiempo real de cédula
+  initCedulaValidation();
   initRegisterForm();
 });
 
@@ -140,34 +135,7 @@ async function handleRegister(e) {
   setLoading(true, btn, btnText, btnLoader);
 
   try {
-    /* ============================================================
-       REGISTRO DE USUARIO
-       ─────────────────────────────────────────────────────────────
-       ACTUAL:  registerUser() → guarda en localStorage (solo dev).
-       SUPABASE: descomentar el bloque de abajo y eliminar registerUser().
-
-       ── Con Supabase ──────────────────────────────────────────────
-       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-       const supabase = createClient(
-         'https://TU_PROJECT_ID.supabase.co',
-         'TU_ANON_PUBLIC_KEY'
-       );
-
-       const { data, error } = await supabase.auth.signUp({
-         email,
-         password,
-         options: {
-           data: { full_name: name, cedula, phone }   // ⭐ Cédula incluida
-         }
-       });
-
-       if (error) throw new Error(error.message);
-
-       // Supabase envía un correo de confirmación por defecto.
-       // Puedes mostrar un mensaje pidiendo al usuario que revise su correo.
-       ─────────────────────────────────────────────────────────────
-    ============================================================ */
+    /* Registrar usuario en el backend PHP */
     const result = await registerUser({ name, email, cedula, phone, password });  // ⭐ Cédula incluida
 
     if (result.success) {
@@ -226,60 +194,15 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
   return true;
 }
 
-/* ----------------------------------------------------------------
-   REGISTRO DE USUARIO CON SUPABASE
-   Guarda el usuario en la tabla "usuario" de Supabase.
-   ---------------------------------------------------------------- */
 async function registerUser({ name, email, cedula, phone, password }) {
-  try {
-    /* 1. Verificar si el correo ya existe */
-    const { data: existingEmail, error: emailError } = await supabaseClient
-      .from('usuario')
-      .select('correo')
-      .eq('correo', email)
-      .single();
+  const response = await fetch('api/register.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ name, email, cedula, phone, password })
+  });
 
-    if (existingEmail) {
-      return { success: false, message: 'El correo ya está registrado' };
-    }
-
-    /* 2. Verificar si la cédula ya existe */
-    const { data: existingCedula, error: cedulaError } = await supabaseClient
-      .from('usuario')
-      .select('cedula')
-      .eq('cedula', cedula)
-      .single();
-
-    if (existingCedula) {
-      return { success: false, message: 'La cédula ya está registrada' };
-    }
-
-    /* 3. Insertar usuario en la tabla "usuario" */
-    const { error: insertError } = await supabaseClient
-      .from('usuario')
-      .insert([
-        {
-          cedula: cedula,
-          nombre: name,
-          correo: email,
-          contrasena: password,  // ⚠️ En producción, usar hash del lado del servidor
-          celular: phone,
-          rol: 'usuario',
-          foto_perfil: null,
-          foto_cedula: null
-        }
-      ]);
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    return { success: true };
-
-  } catch (err) {
-    console.error('Error en registro:', err);
-    return { success: false, message: err.message || 'Error al registrar usuario' };
-  }
+  return await response.json();
 }
 
 /* ----------------------------------------------------------------
@@ -332,7 +255,7 @@ function showError(message) {
  * @param {HTMLElement} btnLoader
  */
 function setLoading(loading, btn, btnText, btnLoader) {
-  btn.disabled = loading;
-  btnText.classList.toggle('d-none',  loading);
-  btnLoader.classList.toggle('d-none', !loading);
+  if (btn) btn.disabled = loading;
+  if (btnText) btnText.classList.toggle('d-none', loading);
+  if (btnLoader) btnLoader.classList.toggle('d-none', !loading);
 }
