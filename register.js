@@ -2,6 +2,7 @@
 const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
 const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
 const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 /* ----------------------------------------------------------------
    INICIALIZACIÓN
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
   initConfirmPasswordValidation();
   initCedulaValidation();  // ⭐ NUEVO: Validación en tiempo real de cédula
+  initImageInputs();
   initRegisterForm();
 });
 
@@ -97,6 +99,82 @@ function validateCedulaEcuatoriana(cedula) {
   return /^[0-9]+$/.test(cedula) && cedula.length > 0;
 }
 
+/* ----------------------------------------------------------------
+   PREVIEW Y VALIDACION DE IMAGENES
+   Valida tipo/tamano y muestra una vista previa antes del envio.
+   ---------------------------------------------------------------- */
+function initImageInputs() {
+  setupImagePreview('profilePhoto', 'profilePhotoPreview');
+  setupImagePreview('cedulaPhoto', 'cedulaPhotoPreview');
+}
+
+function setupImagePreview(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (!input || !preview) return;
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    preview.classList.add('d-none');
+    preview.innerHTML = '';
+
+    if (!file) {
+      input.setCustomValidity('');
+      return;
+    }
+
+    const error = validateImageFile(file);
+    if (error) {
+      input.value = '';
+      input.setCustomValidity(error);
+      showError(error);
+      return;
+    }
+
+    input.setCustomValidity('');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      preview.innerHTML = `<img src="${reader.result}" alt="Vista previa">`;
+      preview.classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function validateImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return 'Solo se permiten archivos de imagen';
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return 'Cada imagen debe pesar maximo 2 MB';
+  }
+
+  return '';
+}
+
+function readImageAsText(inputId) {
+  const input = document.getElementById(inputId);
+  const file = input?.files?.[0];
+
+  if (!file) {
+    return Promise.resolve(null);
+  }
+
+  const error = validateImageFile(file);
+  if (error) {
+    return Promise.reject(new Error(error));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.readAsDataURL(file);
+  });
+}
+
 
 /* ----------------------------------------------------------------
    FORMULARIO DE REGISTRO
@@ -128,9 +206,11 @@ async function handleRegister(e) {
   const password        = document.getElementById('password').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
   const terms           = document.getElementById('terms').checked;
+  const profilePhoto    = document.getElementById('profilePhoto').files[0];
+  const cedulaPhoto     = document.getElementById('cedulaPhoto').files[0];
 
   /* Validar antes de cualquier petición */
-  if (!validateForm(name, email, cedula, password, confirmPassword, terms)) return;  // ⭐ Actualizado
+  if (!validateForm(name, email, cedula, phone, password, confirmPassword, terms, profilePhoto, cedulaPhoto)) return;  // ⭐ Actualizado
 
   /* Referencias al botón */
   const btn       = document.querySelector('.btn-register');
@@ -168,7 +248,17 @@ async function handleRegister(e) {
        // Puedes mostrar un mensaje pidiendo al usuario que revise su correo.
        ─────────────────────────────────────────────────────────────
     ============================================================ */
-    const result = await registerUser({ name, email, cedula, phone, password });  // ⭐ Cédula incluida
+    const fotoPerfil = await readImageAsText('profilePhoto');
+    const fotoCedula = await readImageAsText('cedulaPhoto');
+    const result = await registerUser({
+      name,
+      email,
+      cedula,
+      phone,
+      password,
+      fotoPerfil,
+      fotoCedula
+    });  // ⭐ Cédula incluida
 
     if (result.success) {
       showSuccess('¡Cuenta creada exitosamente! Redirigiendo...');
@@ -191,7 +281,7 @@ async function handleRegister(e) {
    VALIDACIÓN DEL FORMULARIO (cliente) – ACTUALIZADA
    Retorna true si todo es válido; false y muestra error si no.
    ---------------------------------------------------------------- */
-function validateForm(name, email, cedula, password, confirmPassword, terms) {  // ⭐ Cédula agregada
+function validateForm(name, email, cedula, phone, password, confirmPassword, terms, profilePhoto, cedulaPhoto) {  // ⭐ Cédula agregada
   if (name.length < 2) {
     showError('El nombre debe tener al menos 2 caracteres');
     return false;
@@ -205,6 +295,33 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
   // ⭐ NUEVA VALIDACIÓN DE CÉDULA
   if (!validateCedulaEcuatoriana(cedula)) {
     showError('La cédula no es válida. Verifica los 10 dígitos.');
+    return false;
+  }
+
+  if (!phone) {
+    showError('Ingresa un numero de telefono');
+    return false;
+  }
+
+  if (!profilePhoto) {
+    showError('Selecciona una foto de perfil');
+    return false;
+  }
+
+  if (!cedulaPhoto) {
+    showError('Selecciona una foto de cedula');
+    return false;
+  }
+
+  const profilePhotoError = validateImageFile(profilePhoto);
+  if (profilePhotoError) {
+    showError(profilePhotoError);
+    return false;
+  }
+
+  const cedulaPhotoError = validateImageFile(cedulaPhoto);
+  if (cedulaPhotoError) {
+    showError(cedulaPhotoError);
     return false;
   }
 
@@ -230,7 +347,7 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
    REGISTRO DE USUARIO CON SUPABASE
    Guarda el usuario en la tabla "usuario" de Supabase.
    ---------------------------------------------------------------- */
-async function registerUser({ name, email, cedula, phone, password }) {
+async function registerUser({ name, email, cedula, phone, password, fotoPerfil, fotoCedula }) {
   try {
     /* 1. Verificar si el correo ya existe */
     const { data: existingEmail, error: emailError } = await supabaseClient
@@ -265,8 +382,8 @@ async function registerUser({ name, email, cedula, phone, password }) {
           contrasena: password,  // ⚠️ En producción, usar hash del lado del servidor
           celular: phone,
           rol: 'usuario',
-          foto_perfil: null,
-          foto_cedula: null
+          foto_perfil: fotoPerfil,
+          foto_cedula: fotoCedula
         }
       ]);
 

@@ -121,7 +121,7 @@
           </label>
         </div>
 
-        <!-- Campo: Teléfono (opcional) -->
+        <!-- Campo: Teléfono -->
         <div class="form-floating mb-4">
           <input
             type="tel"
@@ -129,11 +129,47 @@
             id="phone"
             name="phone"
             placeholder="999 123 456"
-            autocomplete="tel">
+            autocomplete="tel"
+            required>
           <label for="phone">
             <i class="bi bi-telephone me-2" aria-hidden="true"></i>Teléfono
-            <span class="text-muted fw-normal">(opcional)</span>
           </label>
+        </div>
+
+        <!-- Campo: Foto de perfil -->
+        <div class="mb-4">
+          <label class="file-label" for="profilePhoto">
+            <i class="bi bi-person-square me-2" aria-hidden="true"></i>Foto de
+            perfil
+          </label>
+          <input
+            type="file"
+            class="form-control register-input file-input"
+            id="profilePhoto"
+            name="profilePhoto"
+            accept="image/*"
+            required>
+          <small class="form-text text-muted">JPG, PNG o WEBP. Máximo 2 MB.</small>
+          <div class="image-preview d-none" id="profilePhotoPreview"></div>
+        </div>
+
+        <!-- Campo: Foto de cédula -->
+        <div class="mb-4">
+          <label class="file-label" for="cedulaPhoto">
+            <i class="bi bi-card-image me-2" aria-hidden="true"></i>Foto de
+            cédula
+          </label>
+          <input
+            type="file"
+            class="form-control register-input file-input"
+            id="cedulaPhoto"
+            name="cedulaPhoto"
+            accept="image/*"
+            required>
+          <small class="form-text text-muted">Imagen clara del documento. Máximo
+            2 MB.</small>
+          <div class="image-preview image-preview-document d-none"
+            id="cedulaPhotoPreview"></div>
         </div>
 
         <!-- Campo: Contraseña (con toggle de visibilidad) -->

@@ -2,43 +2,19 @@
    INDEX.JS – BackToMe (VERSIÓN FINAL CORREGIDA)
    ================================================================ */
 
-/* ----------------------------------------------------------------
-   DATOS DE EJEMPLO
-   ---------------------------------------------------------------- */
-let publicacionesRecientes = [
-  {
-    id: 1,
-    titulo: 'iPhone 14 Pro Max gris espacial',
-    tipo: 'perdido',
-    lugar: 'Centro',
-    fecha: 'hace 2h',
-    imagen: 'imagenes/objeto1.jpg',
-    recompensa: '50000',
-  },
-  {
-    id: 2,
-    titulo: 'Cartera de cuero negra',
-    tipo: 'encontrado',
-    lugar: 'Parque Principal',
-    fecha: 'hace 5h',
-    imagen: 'imagenes/objeto2.jpg',
-    recompensa: null,
-  },
-  {
-    id: 3,
-    titulo: 'Llaves con llavero de peluche',
-    tipo: 'perdido',
-    lugar: 'Terminal de Transportes',
-    fecha: 'hace 1 día',
-    imagen: 'imagenes/objeto3.jpg',
-    recompensa: '20000',
-  }
-];
+// Configuración de Supabase
+if (!window.supabaseClient) {
+  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
+  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
+  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+}
+var supabaseClient = window.supabaseClient;
 
 /* ----------------------------------------------------------------
    ESTADO GLOBAL
    ---------------------------------------------------------------- */
 let filtroActivo = 'todos';
+let publicacionesCache = [];
 
 /* ----------------------------------------------------------------
    INIT
@@ -47,68 +23,216 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 BackToMe Iniciado');
   
   renderPublicaciones();
-  initDropzone();
   initFiltrosMenu();
-  initFiltrosModal();
   initAuthUI();        
   initLogout();
   initAuthButtons();
-  initSearchModal();   
-  initPublicarForm();  
   initNavbarActive();  
 });
 
 /* ================================================================
    🔹 RENDER PUBLICACIONES
    ================================================================ */
-function renderPublicaciones() {
+async function renderPublicaciones() {
   const container = document.getElementById('publicacionesRecientes');
   if (!container) return;
 
-  container.innerHTML = '';
+  container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando anuncios...</p></div>';
 
-  let data = publicacionesRecientes;
+  try {
+    let rawData = [];
 
-  if (filtroActivo === 'perdido') {
-    data = data.filter(p => p.tipo === 'perdido');
-  } else if (filtroActivo === 'encontrado') {
-    data = data.filter(p => p.tipo === 'encontrado');
+    // 1. Cargar "Encontrados" (tabla publicaciones)
+    if (filtroActivo === 'todos' || filtroActivo === 'encontrado') {
+      const { data, error } = await supabaseClient
+        .from('publicaciones')
+        .select('*, imagenes_publicaciones(url)')
+        .order('fecha_creacion', { ascending: false });
+      
+      if (error) throw error;
+      rawData = [...rawData, ...(data || []).map(p => ({
+        id: p.id,
+        titulo: p.titulo,
+        tipo: 'encontrado',
+        lugar: p.ubicacion,
+        fecha: p.fecha_encontrado,
+        fecha_iso: p.fecha_creacion,
+        fecha_creacion: p.fecha_creacion,
+        categoria: p.categoria,
+        descripcion: p.descripcion,
+        contacto: p.contacto || p.telefono || p.email || '',
+        imagenes: normalizarImagenes(p.imagenes_publicaciones)
+      }))];
+    }
+
+    // 2. Cargar "Perdidos" (tabla reportes)
+    if (filtroActivo === 'todos' || filtroActivo === 'perdido') {
+      const { data, error } = await supabaseClient
+        .from('reportes')
+        .select('*, imagenes_reportes(url)')
+        .order('fecha_creacion', { ascending: false });
+      
+      if (error) throw error;
+      rawData = [...rawData, ...(data || []).map(r => ({
+        id: r.id,
+        titulo: r.titulo || `Objeto Perdido: ${r.categoria}`,
+        tipo: 'perdido',
+        categoria: r.categoria,
+        descripcion: r.descripcion,
+        lugar: r.sector,
+        fecha: r.fecha_perdida,
+        fecha_iso: r.fecha_creacion,
+        fecha_creacion: r.fecha_creacion,
+        contacto: r.contacto || r.telefono || r.email || '',
+        imagenes: normalizarImagenes(r.imagenes_reportes)
+      }))];
+    }
+
+    // Ordenar por los más nuevos
+    rawData.sort((a, b) => new Date(b.fecha_iso) - new Date(a.fecha_iso));
+    publicacionesCache = rawData.map(pub => ({
+      ...pub,
+      imagen: pub.imagenes[0] || 'imagenes/logo.png'
+    }));
+
+    container.innerHTML = '';
+    if (publicacionesCache.length === 0) {
+      container.innerHTML = '<p class="text-center py-5">No hay publicaciones disponibles.</p>';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    publicacionesCache.slice(0, 6).forEach(pub => {
+      const col = document.createElement('div');
+      col.className = 'col-lg-4 col-md-6';
+      col.innerHTML = buildCardHTML(pub);
+      fragment.appendChild(col);
+    });
+    container.appendChild(fragment);
+    initPublicacionCards();
+
+  } catch (err) {
+    console.error('Error al cargar datos:', err);
+    container.innerHTML = '<p class="text-danger text-center py-5">Error al conectar con la base de datos.</p>';
   }
-
-  const fragment = document.createDocumentFragment();
-
-  data.slice(0, 6).forEach(pub => {
-    const col = document.createElement('div');
-    col.className = 'col-lg-4 col-md-6';
-    col.innerHTML = buildCardHTML(pub);
-    fragment.appendChild(col);
-  });
-
-  container.appendChild(fragment);
 }
 
 function buildCardHTML(pub) {
   const badgeClass = pub.tipo === 'perdido' ? 'bg-danger' : 'bg-success';
   const badgeLabel = pub.tipo === 'perdido' ? 'Perdido' : 'Encontrado';
+  const fotosLabel = pub.imagenes.length === 1 ? '1 foto' : `${pub.imagenes.length} fotos`;
 
   return `
-    <div class="card h-100 shadow-sm hover-card">
-      <img src="${pub.imagen}" class="card-img-top"
-        style="height:200px;object-fit:cover;" 
-        onerror="this.src='imagenes/logo.png'">
+    <article class="card h-100 shadow-sm hover-card publicacion-card" tabindex="0"
+      role="button" data-publicacion-id="${pub.tipo}-${pub.id}"
+      aria-label="Ver detalles de ${escapeHTML(pub.titulo)}">
+      <div class="publicacion-card-media">
+        <img src="${escapeHTML(pub.imagen)}" class="card-img-top"
+          alt="${escapeHTML(pub.titulo)}"
+          onerror="this.src='imagenes/logo.png'">
+        <span class="publicacion-photo-count">
+          <i class="bi bi-images" aria-hidden="true"></i> ${fotosLabel}
+        </span>
+      </div>
       <div class="card-body">
-        <div class="d-flex justify-content-between mb-2">
-          <h6>${pub.titulo}</h6>
+        <div class="d-flex justify-content-between gap-2 mb-2">
+          <h6 class="publicacion-card-title">${escapeHTML(pub.titulo)}</h6>
           <span class="badge ${badgeClass}">${badgeLabel}</span>
         </div>
-        <small class="text-muted">📍 ${pub.lugar}</small><br>
-        <small class="text-muted">🕒 ${pub.fecha}</small>
-        ${pub.recompensa ? `<small class="text-success mt-1 d-block">💰 $${parseInt(pub.recompensa).toLocaleString()}</small>` : ''}
+        <small class="text-muted d-block text-truncate">
+          <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i>${escapeHTML(pub.lugar || 'Sin ubicacion')}
+        </small>
+        <small class="text-muted d-block">
+          <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>${formatDate(pub.fecha)}
+        </small>
       </div>
-    </div>
+    </article>
   `;
 }
 
+function normalizarImagenes(imagenes) {
+  const urls = (imagenes || [])
+    .map(img => img?.url)
+    .filter(Boolean);
+  return urls.length ? urls : ['imagenes/logo.png'];
+}
+
+function initPublicacionCards() {
+  document.querySelectorAll('.publicacion-card').forEach(card => {
+    const abrir = () => abrirDetallePublicacion(card.dataset.publicacionId);
+    card.addEventListener('click', abrir);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        abrir();
+      }
+    });
+  });
+}
+
+function abrirDetallePublicacion(cacheId) {
+  const pub = publicacionesCache.find(item => `${item.tipo}-${item.id}` === cacheId);
+  const modalEl = document.getElementById('detallePublicacionModal');
+  if (!pub || !modalEl) return;
+
+  const badgeClass = pub.tipo === 'perdido' ? 'bg-danger' : 'bg-success';
+  const badgeLabel = pub.tipo === 'perdido' ? 'Objeto perdido' : 'Objeto encontrado';
+
+  document.getElementById('detallePublicacionTitulo').textContent = pub.titulo || 'Publicacion';
+  document.getElementById('detallePublicacionBadge').className = `badge ${badgeClass}`;
+  document.getElementById('detallePublicacionBadge').textContent = badgeLabel;
+  document.getElementById('detallePublicacionCategoria').textContent = pub.categoria || 'Sin categoria';
+  document.getElementById('detallePublicacionLugar').textContent = pub.lugar || 'Sin ubicacion';
+  document.getElementById('detallePublicacionFecha').textContent = formatDate(pub.fecha);
+  document.getElementById('detallePublicacionDescripcion').textContent = pub.descripcion || 'Sin descripcion disponible.';
+  document.getElementById('detallePublicacionContacto').textContent = pub.contacto || 'Contacta al publicador desde la plataforma.';
+
+  const carouselInner = document.getElementById('detallePublicacionFotos');
+  const indicators = document.getElementById('detallePublicacionIndicadores');
+  const carousel = document.getElementById('detallePublicacionCarousel');
+  const controls = modalEl.querySelectorAll('.detalle-carousel-control');
+  carouselInner.innerHTML = '';
+  indicators.innerHTML = '';
+
+  pub.imagenes.forEach((url, index) => {
+    const active = index === 0 ? 'active' : '';
+    carouselInner.innerHTML += `
+      <div class="carousel-item ${active}">
+        <img src="${escapeHTML(url)}" class="detalle-publicacion-img"
+          alt="Foto ${index + 1} de ${escapeHTML(pub.titulo)}"
+          onerror="this.src='imagenes/logo.png'">
+      </div>
+    `;
+    indicators.innerHTML += `
+      <button type="button" data-bs-target="#detallePublicacionCarousel"
+        data-bs-slide-to="${index}" class="${active}" aria-current="${index === 0 ? 'true' : 'false'}"
+        aria-label="Foto ${index + 1}"></button>
+    `;
+  });
+
+  const mostrarControles = pub.imagenes.length > 1;
+  indicators.style.display = mostrarControles ? 'flex' : 'none';
+  controls.forEach(control => control.style.display = mostrarControles ? 'flex' : 'none');
+  bootstrap.Carousel.getOrCreateInstance(carousel).to(0);
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+function formatDate(value) {
+  if (!value) return 'Sin fecha';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
 /* ================================================================
    🔹 NAVBAR - MARCAR OPCIÓN ACTIVA
    ================================================================ */
@@ -162,222 +286,6 @@ function initFiltrosMenu() {
       renderPublicaciones();
     });
   }
-}
-
-/* ================================================================
-   🔹 DROPZONE
-   ================================================================ */
-function initDropzone() {
-  const dropzone = document.getElementById('dropzone');
-  const inputFotos = document.getElementById('inputFotos');
-  const preview = document.getElementById('previewFotos');
-
-  if (!dropzone) return;
-
-  dropzone.addEventListener('click', () => inputFotos.click());
-
-  inputFotos.addEventListener('change', () => {
-    renderPreview(inputFotos.files, preview);
-  });
-}
-
-function renderPreview(files, container) {
-  container.innerHTML = '';
-  const MAX = 5;
-
-  Array.from(files).slice(0, MAX).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const div = document.createElement('div');
-      div.className = 'col-4';
-      div.innerHTML = `<img src="${e.target.result}" class="img-fluid rounded" style="height:80px;object-fit:cover;">`;
-      container.appendChild(div);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-/* ================================================================
-   🔹 FILTROS MODAL
-   ================================================================ */
-function initFiltrosModal() {
-  const btnLimpiar = document.getElementById('btnLimpiarFiltros');
-  const btnAplicar = document.getElementById('btnAplicarFiltros');
-
-  btnLimpiar?.addEventListener('click', () => {
-    document.querySelectorAll('#searchModal select, #searchModal input')
-      .forEach(el => el.value = '');
-    document.getElementById('searchInput').value = '';
-    realizarBusqueda();
-  });
-
-  btnAplicar?.addEventListener('click', () => {
-    realizarBusqueda();
-  });
-}
-
-/* ================================================================
-   🔥 BÚSQUEDA DE OBJETOS - CORREGIDA
-   ================================================================ */
-function initSearchModal() {
-  console.log('🔍 Inicializando búsqueda...');
-  
-  const searchInput = document.getElementById('searchInput');
-  const btnBuscar = document.querySelector('#searchModal .btn-pastel-primary');
-  const ordenSelect = document.querySelector('#searchModal select[aria-label="Ordenar resultados"]');
-  
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      realizarBusqueda();
-    });
-  }
-  
-  if (btnBuscar) {
-    btnBuscar.addEventListener('click', () => {
-      realizarBusqueda();
-    });
-  }
-  
-  if (ordenSelect) {
-    ordenSelect.addEventListener('change', () => {
-      realizarBusqueda();
-    });
-  }
-  
-  realizarBusqueda();
-}
-
-function realizarBusqueda() {
-  const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-  const tipoFiltro = document.getElementById('filtroTipo')?.value || '';
-  const categoriaFiltro = document.getElementById('filtroCategoria')?.value || '';
-  const zonaFiltro = document.getElementById('filtroZona')?.value || '';
-  const ordenSelect = document.querySelector('#searchModal select[aria-label="Ordenar resultados"]');
-  const orden = ordenSelect?.value || '';
-  
-  let resultados = publicacionesRecientes.filter(pub => {
-    const matchTexto = searchTerm === '' || 
-      pub.titulo.toLowerCase().includes(searchTerm) ||
-      pub.lugar.toLowerCase().includes(searchTerm);
-    
-    const matchTipo = !tipoFiltro || pub.tipo === tipoFiltro;
-    const matchZona = !zonaFiltro || pub.lugar.toLowerCase().includes(zonaFiltro.toLowerCase());
-    
-    return matchTexto && matchTipo && matchZona;
-  });
-  
-  if (orden === 'Recompensa alta') {
-    resultados.sort((a, b) => (parseInt(b.recompensa) || 0) - (parseInt(a.recompensa) || 0));
-  }
-  
-  mostrarResultadosBusqueda(resultados);
-}
-
-function mostrarResultadosBusqueda(resultados) {
-  const container = document.querySelector('#searchModal .resultados');
-  const countSpan = document.getElementById('resultadosCount');
-  
-  if (!container) return;
-  
-  if (countSpan) countSpan.textContent = resultados.length;
-  
-  if (resultados.length === 0) {
-    container.innerHTML = `
-      <div class="alert alert-info text-center">
-        <i class="bi bi-info-circle"></i> No se encontraron resultados
-      </div>
-    `;
-    return;
-  }
-  
-  container.innerHTML = resultados.map(pub => {
-    const badgeClass = pub.tipo === 'perdido' ? 'bg-danger' : 'bg-success';
-    const badgeLabel = pub.tipo === 'perdido' ? 'Perdido' : 'Encontrado';
-    
-    return `
-      <div class="resultado-item p-3 border rounded-3 bg-white shadow-sm mb-3">
-        <div class="d-flex align-items-center">
-          <img
-            src="${pub.imagen}"
-            alt="${pub.titulo}"
-            class="rounded-2 me-3 flex-shrink-0"
-            style="width:60px;height:60px;object-fit:cover;"
-            onerror="this.src='imagenes/logo.png'">
-          <div class="flex-grow-1">
-            <h6 class="mb-1">${pub.titulo}</h6>
-            <span class="badge ${badgeClass}">${badgeLabel}</span>
-            <p class="small text-muted mb-1">📍 ${pub.lugar} · 🕒 ${pub.fecha}</p>
-            ${pub.recompensa ? `<small class="text-success">💰 $${parseInt(pub.recompensa).toLocaleString()}</small>` : ''}
-          </div>
-          <a href="#" class="btn btn-sm btn-outline-primary ms-2">Ver</a>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-/* ================================================================
-   🔥 PUBLICAR OBJETO
-   ================================================================ */
-function initPublicarForm() {
-  const form = document.getElementById('publicarForm');
-  const btnPublicar = document.querySelector('#publicarModal button[type="submit"]');
-  
-  if (!form) return;
-  
-  btnPublicar?.addEventListener('click', (e) => {
-    e.preventDefault();
-    
-    const user = JSON.parse(localStorage.getItem('userLogged'));
-    if (!user) {
-      alert('⚠️ Debes iniciar sesión para publicar un objeto');
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
-    const titulo = document.getElementById('pubTitulo')?.value;
-    const descripcion = document.getElementById('descripcion')?.value;
-    const lugar = document.getElementById('lugar')?.value;
-    const recompensa = document.getElementById('recompensa')?.value;
-    
-    if (!titulo || !descripcion || !lugar) {
-      alert('⚠️ Completa: Título, Descripción y Lugar');
-      return;
-    }
-    
-    const nuevaPublicacion = {
-      id: publicacionesRecientes.length + 1,
-      titulo: titulo,
-      tipo: tipo || 'perdido',
-      lugar: lugar,
-      fecha: 'hace unos segundos',
-      imagen: 'imagenes/logo.png',
-      recompensa: recompensa || null,
-      usuario: user.email
-    };
-    
-    publicacionesRecientes.unshift(nuevaPublicacion);
-    form.reset();
-    document.getElementById('previewFotos').innerHTML = '';
-    
-    // Cerrar modal de forma segura
-    const modalElement = document.getElementById('publicarModal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    if (modal) {
-      modal.hide();
-    }
-    // Forzar limpieza del backdrop si queda pegado
-    setTimeout(() => {
-      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-      document.body.classList.remove('modal-open');
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('padding-right');
-    }, 300);
-    
-    renderPublicaciones();
-    alert('✅ ¡Publicación creada con éxito!');
-  });
 }
 
 /* ================================================================
@@ -438,6 +346,9 @@ function initAuthUI() {
       });
     }
   }
+  
+  // 🔐 Actualizar estado de botones de publicar y reportar
+  updateButtonAuthStatus();
 }
 
 /* ================================================================
@@ -466,4 +377,61 @@ function initLogout() {
     localStorage.removeItem('userLogged');
     window.location.reload();
   });
+}
+
+/* ================================================================
+   🔹 ACTUALIZAR ESTADO DE BOTONES (PUBLICAR Y REPORTAR)
+   ================================================================ */
+function updateButtonAuthStatus() {
+  const user = JSON.parse(localStorage.getItem('userLogged'));
+  
+  // Botones en el hero
+  const btnPublicarHero = document.getElementById('btnPublicarHero');
+  const btnReportarHero = document.getElementById('btnReportarHero');
+  
+  // Botones en el menú lateral
+  const btnPublicarMenu = document.getElementById('btnPublicarMenu');
+  const btnReportarMenu = document.getElementById('btnReportarMenu');
+  
+  if (user && user.email) {
+    // ✅ USUARIO LOGUEADO - HABILITAR BOTONES
+    if (btnPublicarHero) btnPublicarHero.disabled = false;
+    if (btnReportarHero) btnReportarHero.disabled = false;
+    
+    if (btnPublicarMenu) {
+      btnPublicarMenu.style.pointerEvents = 'auto';
+      btnPublicarMenu.style.opacity = '1';
+      btnPublicarMenu.style.cursor = 'pointer';
+      btnPublicarMenu.removeAttribute('disabled');
+    }
+    
+    if (btnReportarMenu) {
+      btnReportarMenu.style.pointerEvents = 'auto';
+      btnReportarMenu.style.opacity = '1';
+      btnReportarMenu.style.cursor = 'pointer';
+      btnReportarMenu.removeAttribute('disabled');
+    }
+    
+    console.log('✅ Botones de publicar y reportar: HABILITADOS');
+  } else {
+    // ❌ NO LOGUEADO - DESHABILITAR BOTONES
+    if (btnPublicarHero) btnPublicarHero.disabled = true;
+    if (btnReportarHero) btnReportarHero.disabled = true;
+    
+    if (btnPublicarMenu) {
+      btnPublicarMenu.style.pointerEvents = 'none';
+      btnPublicarMenu.style.opacity = '0.5';
+      btnPublicarMenu.style.cursor = 'not-allowed';
+      btnPublicarMenu.setAttribute('disabled', 'true');
+    }
+    
+    if (btnReportarMenu) {
+      btnReportarMenu.style.pointerEvents = 'none';
+      btnReportarMenu.style.opacity = '0.5';
+      btnReportarMenu.style.cursor = 'not-allowed';
+      btnReportarMenu.setAttribute('disabled', 'true');
+    }
+    
+    console.log('❌ Botones de publicar y reportar: DESHABILITADOS');
+  }
 }

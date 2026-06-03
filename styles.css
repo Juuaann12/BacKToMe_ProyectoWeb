@@ -399,6 +399,76 @@ body {
   margin-bottom: 8px;
 }
 
+.admin-user-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-photo-thumb,
+.admin-photo-empty {
+  width: 132px;
+  min-height: 132px;
+  border: 1px solid var(--btm-border);
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+  color: var(--btm-text);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-photo-thumb {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.admin-photo-thumb:hover {
+  border-color: var(--btm-primary);
+  box-shadow: 0 6px 18px rgba(52, 152, 219, 0.16);
+  transform: translateY(-1px);
+}
+
+.admin-photo-thumb img {
+  width: 100%;
+  height: 92px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.admin-photo-thumb.document img {
+  object-fit: contain;
+  background: #f8fbff;
+}
+
+.admin-photo-thumb span,
+.admin-photo-empty span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.admin-photo-empty {
+  color: var(--btm-text-muted);
+  background: #f8fbff;
+  border-style: dashed;
+}
+
+.admin-photo-empty i {
+  font-size: 1.8rem;
+}
+
+.admin-photo-modal-img {
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+}
+
 /* Badge de rol */
 .badge-role {
   background: var(--btm-light);
@@ -563,6 +633,278 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+.publicacion-card {
+  cursor: pointer;
+  overflow: hidden;
+  border: 1px solid rgba(205, 231, 248, 0.9);
+}
+
+.publicacion-card:focus-visible {
+  outline: 3px solid rgba(91, 188, 255, 0.45);
+  outline-offset: 3px;
+}
+
+.publicacion-card-media {
+  position: relative;
+  height: 168px;
+  background: linear-gradient(135deg, #f8fbff, #e8f4fd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.publicacion-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 8px;
+}
+
+.publicacion-card-title {
+  min-width: 0;
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.publicacion-photo-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(26, 47, 69, 0.82);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+}
+
+.detalle-publicacion-gallery {
+  background: #f8fbff;
+}
+
+.detalle-publicacion-gallery .carousel,
+.detalle-publicacion-gallery .carousel-inner,
+.detalle-publicacion-gallery .carousel-item {
+  height: min(68vh, 620px);
+  min-height: 360px;
+}
+
+.detalle-publicacion-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 18px;
+}
+
+.detalle-publicacion-info {
+  height: 100%;
+  padding: 2rem;
+  background: #fff;
+}
+
+.detalle-publicacion-meta {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 1.5rem;
+}
+
+.detalle-publicacion-meta div {
+  padding: 12px 14px;
+  border: 1px solid var(--btm-border);
+  border-radius: 12px;
+  background: var(--btm-bg-page);
+}
+
+.detalle-publicacion-meta dt {
+  margin-bottom: 4px;
+  color: var(--btm-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detalle-publicacion-meta dd,
+.detalle-publicacion-text {
+  margin: 0;
+  color: var(--btm-text);
+  overflow-wrap: anywhere;
+}
+
+.detalle-carousel-control {
+  width: 58px;
+}
+
+/* ================================================================
+   MIS PUBLICACIONES
+   ================================================================ */
+.mis-publicaciones-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 2rem;
+  border: 1.5px solid var(--btm-border);
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 55%, #e8f4fd 100%);
+  box-shadow: var(--shadow-card);
+}
+
+.fw-black {
+  font-weight: 900;
+}
+
+.mis-publicaciones-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+}
+
+.mis-publicaciones-list {
+  display: grid;
+  gap: 14px;
+}
+
+.mis-publicacion-item {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--btm-border);
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.mis-publicacion-item:hover {
+  border-color: var(--btm-primary-mid);
+  box-shadow: 0 8px 24px rgba(47, 158, 232, 0.12);
+  transform: translateY(-1px);
+}
+
+.mis-publicacion-thumb {
+  position: relative;
+  width: 132px;
+  height: 104px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--btm-bg-page);
+  border: 1px solid rgba(205, 231, 248, 0.9);
+}
+
+.mis-publicacion-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 6px;
+}
+
+.mis-publicacion-thumb span {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: rgba(26, 47, 69, 0.82);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.mis-publicacion-content {
+  min-width: 0;
+}
+
+.mis-publicacion-content p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mis-publicacion-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--btm-muted);
+  font-size: 0.86rem;
+}
+
+.mis-publicacion-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mis-publicacion-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mis-publicaciones-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.mis-publicaciones-empty i {
+  display: block;
+  color: var(--btm-primary-dark);
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.mis-publicaciones-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mis-publicacion-photo-link {
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--btm-border);
+  border-radius: 10px;
+  background: var(--btm-bg-page);
+  overflow: hidden;
+}
+
+.mis-publicacion-photo-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.mis-publicaciones-alert {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2000;
+  min-width: min(340px, calc(100vw - 32px));
+  box-shadow: var(--shadow-card);
+}
+
 /* ================================================================
    SECCIÓN SEGURIDAD (Index)
    ================================================================ */
@@ -711,6 +1053,48 @@ body {
   /* Seguridad */
   .seguridad-item { margin-bottom: 1rem; }
   .footer-section .col-md-6:last-child { text-align: center; margin-top: 1rem; }
+
+  .publicacion-card-media {
+    height: 150px;
+  }
+
+  .detalle-publicacion-gallery .carousel,
+  .detalle-publicacion-gallery .carousel-inner,
+  .detalle-publicacion-gallery .carousel-item {
+    height: 52vh;
+    min-height: 280px;
+  }
+
+  .detalle-publicacion-info {
+    padding: 1.5rem;
+  }
+
+  .mis-publicaciones-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+
+  .mis-publicaciones-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .mis-publicacion-item {
+    grid-template-columns: 1fr;
+  }
+
+  .mis-publicacion-thumb {
+    width: 100%;
+    height: 190px;
+  }
+
+  .mis-publicacion-actions {
+    justify-content: stretch;
+  }
+
+  .mis-publicacion-actions .btn {
+    flex: 1;
+  }
 
   /* Modales */
   .modal-dialog { margin: 1rem; }

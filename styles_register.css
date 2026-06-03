@@ -162,6 +162,38 @@ body.register-body {
   outline: none;
 }
 
+.file-label {
+  color: var(--color-text-label);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.file-input {
+  padding: 0.85rem 1rem;
+}
+
+.image-preview {
+  width: 96px;
+  height: 96px;
+  margin-top: 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.image-preview-document {
+  width: 100%;
+  height: 150px;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Estado inválido (usado por validateConfirmPassword en JS) */
 .register-input.is-invalid {
   border-color: #e57373;

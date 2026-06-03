@@ -2,11 +2,14 @@
    ADMIN.JS  –  BackToMe · Panel de Administración
    Gestiona usuarios y publicaciones: tabs, filtro y render.
    ================================================================ */
-
 // Configuración de Supabase
-const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+// Verificamos si el cliente ya existe en el objeto window para no sobreescribirlo
+if (!window.supabaseClient) {
+  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
+  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
+  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+}
+var supabaseClient = window.supabaseClient;
 
 /* ----------------------------------------------------------------
    PROTECCIÓN DE RUTA
@@ -16,13 +19,11 @@ function checkAdminAccess() {
   const user = JSON.parse(localStorage.getItem('userLogged'));
   
   if (!user || !user.email) {
-    // No hay sesión → redirigir a login
     window.location.href = 'login.html';
     return false;
   }
   
   if (user.rol !== 'admin') {
-    // No es admin → redirigir a inicio
     alert('⛔ Acceso restringido. Solo administradores.');
     window.location.href = 'index.html';
     return false;
@@ -34,7 +35,7 @@ function checkAdminAccess() {
 /* ----------------------------------------------------------------
    ESTADO GLOBAL DEL PANEL
    ---------------------------------------------------------------- */
-let tipoActual = 'usuarios'; // Tab activo: 'usuarios' | 'publicaciones'
+let tipoActual = 'usuarios';
 let usuariosData = [];
 let publicacionesData = [];
 
@@ -42,10 +43,8 @@ let publicacionesData = [];
    INICIALIZACIÓN
    ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar acceso de administrador
   if (!checkAdminAccess()) return;
   
-  // Cargar datos desde Supabase
   await cargarDatos();
   
   actualizarEstadisticas();
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', async () => {
    ---------------------------------------------------------------- */
 async function cargarDatos() {
   try {
-    // Cargar usuarios
     const { data: usuarios, error: errorUsuarios } = await supabaseClient
       .from('usuario')
       .select('*')
@@ -67,13 +65,32 @@ async function cargarDatos() {
     if (errorUsuarios) throw errorUsuarios;
     usuariosData = usuarios || [];
     
-    // Cargar publicaciones
     const { data: publicaciones, error: errorPublicaciones } = await supabaseClient
       .from('publicaciones')
       .select('*');
     
     if (errorPublicaciones) throw errorPublicaciones;
-    publicacionesData = publicaciones || [];
+
+    const { data: reportes, error: errorReportes } = await supabaseClient
+      .from('reportes')
+      .select('*');
+    
+    if (errorReportes) throw errorReportes;
+
+    publicacionesData = [
+      ...(publicaciones || []).map(pub => ({
+        ...pub,
+        adminTipo: 'encontrado',
+        adminTabla: 'publicaciones'
+      })),
+      ...(reportes || []).map(rep => ({
+        ...rep,
+        adminTipo: 'perdido',
+        adminTabla: 'reportes',
+        ubicacion: rep.sector,
+        fecha_encontrado: rep.fecha_perdida
+      }))
+    ].sort((a, b) => new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0));
     
     console.log('✅ Datos cargados:', usuariosData.length, 'usuarios,', publicacionesData.length, 'publicaciones');
     
@@ -84,20 +101,17 @@ async function cargarDatos() {
 }
 
 /* ----------------------------------------------------------------
-   ESTADÍSTICAS – Actualiza los contadores del panel
+   ESTADÍSTICAS
    ---------------------------------------------------------------- */
 function actualizarEstadisticas() {
+  const totalReportes = publicacionesData.filter(pub => pub.adminTipo === 'perdido').length;
+
   setStatValue('statUsuarios',      usuariosData.length);
   setStatValue('statPublicaciones', publicacionesData.length);
-  setStatValue('statNuevos',        0); // TODO: filtrar por fecha de hoy
-  setStatValue('statReportes',      0); // TODO: tabla de reportes en Supabase
+  setStatValue('statNuevos',        0);
+  setStatValue('statReportes',      totalReportes);
 }
 
-/**
- * Actualiza el texto de un elemento de estadística.
- * @param {string} id    - ID del elemento.
- * @param {number} valor - Valor a mostrar.
- */
 function setStatValue(id, valor) {
   const el = document.getElementById(id);
   if (el) el.textContent = valor;
@@ -105,14 +119,10 @@ function setStatValue(id, valor) {
 
 /* ----------------------------------------------------------------
    CAMBIAR TAB
-   Llama desde el atributo onclick del HTML.
-   @param {string}      tipo - 'usuarios' | 'publicaciones'
-   @param {HTMLElement} btn  - Botón clicado (para actualizar clase active)
    ---------------------------------------------------------------- */
 function cambiarTab(tipo, btn) {
   tipoActual = tipo;
 
-  /* Actualizar clases y aria-selected en todos los tabs */
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.remove('active');
     t.setAttribute('aria-selected', 'false');
@@ -120,7 +130,6 @@ function cambiarTab(tipo, btn) {
   btn.classList.add('active');
   btn.setAttribute('aria-selected', 'true');
 
-  /* Actualizar placeholder del buscador */
   const buscador = document.getElementById('buscador');
   if (buscador) {
     buscador.value = '';
@@ -134,7 +143,6 @@ function cambiarTab(tipo, btn) {
 
 /* ----------------------------------------------------------------
    RENDER
-   Genera los items de la lista según el tab activo.
    ---------------------------------------------------------------- */
 function render() {
   const lista = document.getElementById('lista');
@@ -165,7 +173,6 @@ function render() {
   lista.innerHTML = '';
   lista.appendChild(fragment);
 
-  /* Registrar eventos de eliminación */
   lista.querySelectorAll('.btn-eliminar').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.index, 10);
@@ -174,17 +181,14 @@ function render() {
   });
 }
 
-/**
- * HTML de un item de usuario.
- * @param {Object} usuario
- * @param {number} index
- * @returns {string}
- */
+/* ----------------------------------------------------------------
+   BUILD USUARIO HTML  ✅ FOTOS VISIBLES
+   ---------------------------------------------------------------- */
 function buildUsuarioHTML(usuario, index) {
-  // Mostrar todos los datos del usuario
   return `
     <div class="usuario-card p-3 border rounded-3 bg-white shadow-sm mb-3">
       <div class="row g-3">
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -197,6 +201,7 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -209,6 +214,7 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -221,17 +227,40 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <small class="text-muted d-block">Fotos</small>
-          <div class="d-flex gap-2">
-            ${usuario.foto_perfil 
-              ? `<a href="${usuario.foto_perfil}" target="_blank" class="btn btn-sm btn-outline-secondary">Perfil</a>` 
-              : '<span class="text-muted small">Sin foto</span>'}
-            ${usuario.foto_cedula 
-              ? `<a href="${usuario.foto_cedula}" target="_blank" class="btn btn-sm btn-outline-secondary">Cédula</a>` 
-              : '<span class="text-muted small">Sin foto</span>'}
+
+        <!-- ✅ FOTOS VISIBLES -->
+        <div class="col-12">
+          <div class="row g-3">
+
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Foto de perfil</small>
+              ${usuario.foto_perfil
+                ? `<a href="${usuario.foto_perfil}" target="_blank" title="Clic para ver en tamaño completo">
+                     <img src="${usuario.foto_perfil}"
+                       alt="Foto de perfil de ${usuario.nombre || ''}"
+                       class="img-thumbnail"
+                       style="width: 120px; height: 120px; object-fit: cover; cursor: pointer;">
+                   </a>`
+                : '<span class="text-muted small">Sin foto de perfil</span>'
+              }
+            </div>
+
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Foto de cédula</small>
+              ${usuario.foto_cedula
+                ? `<a href="${usuario.foto_cedula}" target="_blank" title="Clic para ver en tamaño completo">
+                     <img src="${usuario.foto_cedula}"
+                       alt="Foto de cédula de ${usuario.nombre || ''}"
+                       class="img-thumbnail"
+                       style="width: 120px; height: 120px; object-fit: cover; cursor: pointer;">
+                   </a>`
+                : '<span class="text-muted small">Sin foto de cédula</span>'
+              }
+            </div>
+
           </div>
         </div>
+
       </div>
     </div>
     <button
@@ -243,33 +272,27 @@ function buildUsuarioHTML(usuario, index) {
   `;
 }
 
-/**
- * HTML de un item de publicación.
- * @param {Object} pub
- * @param {number} index
- * @returns {string}
- */
+/* ----------------------------------------------------------------
+   BUILD PUBLICACIÓN HTML
+   ---------------------------------------------------------------- */
 function buildPublicacionHTML(pub, index) {
-  // Detectar tipo (puede ser 'tipo' o 'tipopublicacion')
-  const tipo = pub.tipo || pub.tipopublicacion || 'publicacion';
+  const tipo = pub.adminTipo || pub.tipo || pub.tipopublicacion || 'publicacion';
   const badgeClass = tipo === 'perdido' ? 'bg-danger' : 'bg-success';
-  
-  // Detectar autor (puede ser 'autor', 'usuario', 'email')
-  const autor = pub.autor || pub.usuario || pub.email || 'Anónimo';
-  
-  // Detectar título
-  const titulo = pub.titulo || pub.titulo_publicacion || 'Sin título';
-  
+  const autor = pub.autor || pub.usuario || pub.email || pub.cedula_usuario || 'Anonimo';
+  const titulo = pub.titulo || pub.titulo_publicacion || `Objeto perdido: ${pub.categoria || 'Sin categoria'}`;
+  const ubicacion = pub.ubicacion || pub.sector || 'N/A';
+
   return `
     <div>
       <strong>${titulo}</strong>
       <p class="text-muted small mb-1">Autor: ${autor}</p>
+      <p class="text-muted small mb-1">Ubicacion: ${ubicacion}</p>
       <span class="badge ${badgeClass}">${tipo}</span>
     </div>
     <button
       class="btn btn-danger btn-sm btn-eliminar"
       data-index="${index}"
-      aria-label="Eliminar publicación ${titulo}">
+      aria-label="Eliminar publicacion ${titulo}">
       <i class="bi bi-trash" aria-hidden="true"></i>
     </button>
   `;
@@ -277,47 +300,122 @@ function buildPublicacionHTML(pub, index) {
 
 /* ----------------------------------------------------------------
    ELIMINAR
-   Elimina de Supabase y actualiza la vista.
    ---------------------------------------------------------------- */
 async function eliminar(index) {
   const dato = tipoActual === 'usuarios' ? usuariosData[index] : publicacionesData[index];
-  
   if (!dato) return;
-  
-  const confirmar = confirm(`¿Estás seguro de eliminar este ${tipoActual === 'usuarios' ? 'usuario' : 'publicación'}?`);
+
+  const nombreItem = tipoActual === 'usuarios'
+    ? `usuario ${dato.nombre || dato.cedula || ''}`
+    : `publicacion ${dato.titulo || dato.categoria || ''}`;
+  const confirmar = confirm(`Seguro que quieres eliminar este ${nombreItem}? Esta accion tambien se borrara de Supabase.`);
   if (!confirmar) return;
-  
+
   try {
-    let tabla = tipoActual === 'usuarios' ? 'usuario' : 'publicaciones';
-    let idCampo = tipoActual === 'usuarios' ? 'cedula' : 'id';
-    
-    const { error } = await supabaseClient
-      .from(tabla)
-      .delete()
-      .eq(idCampo, dato[idCampo]);
-    
-    if (error) throw error;
-    
-    // Actualizar array local
     if (tipoActual === 'usuarios') {
+      await eliminarUsuarioCompleto(dato.cedula);
       usuariosData.splice(index, 1);
-      setStatValue('statUsuarios', usuariosData.length);
+      publicacionesData = publicacionesData.filter(pub => pub.cedula_usuario !== dato.cedula);
     } else {
+      await eliminarPublicacionCompleta(dato);
       publicacionesData.splice(index, 1);
-      setStatValue('statPublicaciones', publicacionesData.length);
     }
-    
+
+    actualizarEstadisticas();
     render();
-    alert('✅ Eliminado correctamente');
-    
+    alert('Eliminado correctamente en Supabase');
   } catch (err) {
-    console.error('❌ Error al eliminar:', err);
-    alert('Error al eliminar. Revisa la consola.');
+    console.error('Error al eliminar en Supabase:', err);
+    alert(`Error al eliminar en Supabase: ${err.message || 'Revisa la consola.'}`);
+  }
+}
+
+async function eliminarUsuarioCompleto(cedula) {
+  if (!cedula) throw new Error('El usuario no tiene cedula asociada.');
+
+  const { data: publicaciones, error: errorPublicaciones } = await supabaseClient
+    .from('publicaciones')
+    .select('id')
+    .eq('cedula_usuario', cedula);
+  if (errorPublicaciones) throw errorPublicaciones;
+
+  const { data: reportes, error: errorReportes } = await supabaseClient
+    .from('reportes')
+    .select('id')
+    .eq('cedula_usuario', cedula);
+  if (errorReportes) throw errorReportes;
+
+  for (const pub of publicaciones || []) {
+    await eliminarPublicacionEncontrada(pub.id, cedula);
+  }
+
+  for (const rep of reportes || []) {
+    await eliminarReporte(rep.id, cedula);
+  }
+
+  const { data, error } = await supabaseClient
+    .from('usuario')
+    .delete()
+    .eq('cedula', cedula)
+    .select('cedula');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ningun usuario en Supabase.');
+}
+
+async function eliminarPublicacionCompleta(pub) {
+  if (pub.adminTabla === 'reportes' || pub.adminTipo === 'perdido') {
+    await eliminarReporte(pub.id, pub.cedula_usuario);
+    return;
+  }
+  await eliminarPublicacionEncontrada(pub.id, pub.cedula_usuario);
+}
+
+async function eliminarPublicacionEncontrada(id, cedulaUsuario) {
+  const { error: imgError } = await supabaseClient
+    .from('imagenes_publicaciones')
+    .delete()
+    .eq('id_publicacion', id);
+  if (imgError) throw imgError;
+
+  let query = supabaseClient
+    .from('publicaciones')
+    .delete()
+    .eq('id', id);
+
+  if (cedulaUsuario) query = query.eq('cedula_usuario', cedulaUsuario);
+
+  const { data, error } = await query.select('id');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ninguna publicacion en Supabase.');
+}
+
+async function eliminarReporte(id, cedulaUsuario) {
+  const { error: imgError } = await supabaseClient
+    .from('imagenes_reportes')
+    .delete()
+    .eq('id_reporte', id);
+  if (imgError) throw imgError;
+
+  let query = supabaseClient
+    .from('reportes')
+    .delete()
+    .eq('id', id);
+
+  if (cedulaUsuario) query = query.eq('cedula_usuario', cedulaUsuario);
+
+  const { data, error } = await query.select('id');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ningun reporte en Supabase.');
+}
+
+function asegurarFilasAfectadas(data, mensaje) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(`${mensaje} Verifica que el registro exista y que Supabase permita DELETE para esta tabla.`);
   }
 }
 
 /* ----------------------------------------------------------------
-   FILTRO – Búsqueda en tiempo real sobre los items renderizados
+   FILTRO
    ---------------------------------------------------------------- */
 function filtrar() {
   const texto = document.getElementById('buscador')?.value.toLowerCase() ?? '';
@@ -330,7 +428,6 @@ function filtrar() {
 
 /* ----------------------------------------------------------------
    LOGOUT
-   TODO: reemplazar con supabase.auth.signOut() y redirect a login.
    ---------------------------------------------------------------- */
 function initLogout() {
   const btn = document.getElementById('btnLogout');
