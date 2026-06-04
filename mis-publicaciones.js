@@ -2,19 +2,12 @@
    MIS PUBLICACIONES - BackToMe
    ================================================================ */
 
-if (!window.supabaseClient) {
-  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th';
-  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-var supabaseClient = window.supabaseClient;
-
 let usuarioActual = null;
 let publicacionesUsuario = [];
 let publicacionesFiltradas = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-  usuarioActual = getUsuarioActual();
+  usuarioActual = getCurrentUser();
 
   if (!usuarioActual?.cedula) {
     window.location.href = 'login.html';
@@ -91,7 +84,7 @@ async function cargarMisPublicaciones() {
       lugar: pub.ubicacion,
       fecha: pub.fecha_encontrado,
       fecha_creacion: pub.fecha_creacion,
-      imagenes: normalizarImagenes(pub.imagenes_publicaciones)
+      imagenes: normalizarImagenes(pub.imagenes_publicaciones) || ['imagenes/logo.png']
     }));
 
     const perdidas = (perdidasResp.data || []).map(rep => ({
@@ -104,7 +97,7 @@ async function cargarMisPublicaciones() {
       lugar: rep.sector,
       fecha: rep.fecha_perdida,
       fecha_creacion: rep.fecha_creacion,
-      imagenes: normalizarImagenes(rep.imagenes_reportes)
+      imagenes: normalizarImagenes(rep.imagenes_reportes) || ['imagenes/logo.png']
     }));
 
     publicacionesUsuario = [...encontradas, ...perdidas]
@@ -275,18 +268,17 @@ async function guardarCambiosPublicacion(event) {
       .from(tabla)
       .update(datos)
       .eq('id', pub.id)
-      .eq('cedula_usuario', usuarioActual.cedula)
       .select('id');
 
     if (error) throw error;
     asegurarFilasAfectadas(data, 'No se actualizo ninguna fila en Supabase.');
 
     bootstrap.Modal.getInstance(document.getElementById('editarPublicacionModal'))?.hide();
-    mostrarAlerta('Publicacion actualizada correctamente.', 'success');
+    showSuccess('Publicación actualizada correctamente.');
     await cargarMisPublicaciones();
   } catch (error) {
     console.error('Error al actualizar:', error);
-    mostrarAlerta('No se pudo actualizar la publicacion.', 'danger');
+    showError('No se pudo actualizar la publicación.');
   } finally {
     setSubmitLoading(false);
   }
@@ -306,12 +298,12 @@ async function eliminarPublicacion(cacheId) {
       await eliminarPublicacionEncontrada(pub.id);
     }
 
-    mostrarAlerta('Publicacion eliminada correctamente.', 'success');
+    showSuccess('Publicación eliminada correctamente.');
     publicacionesUsuario = publicacionesUsuario.filter(item => item.cacheId !== cacheId);
     aplicarFiltros();
   } catch (error) {
     console.error('Error al eliminar:', error);
-    mostrarAlerta('No se pudo eliminar la publicacion.', 'danger');
+    showError('No se pudo eliminar la publicación.');
   }
 }
 
@@ -326,7 +318,6 @@ async function eliminarPublicacionEncontrada(id) {
     .from('publicaciones')
     .delete()
     .eq('id', id)
-    .eq('cedula_usuario', usuarioActual.cedula)
     .select('id');
   if (error) throw error;
   asegurarFilasAfectadas(data, 'No se elimino ninguna publicacion en Supabase.');
@@ -343,17 +334,12 @@ async function eliminarReporte(id) {
     .from('reportes')
     .delete()
     .eq('id', id)
-    .eq('cedula_usuario', usuarioActual.cedula)
     .select('id');
   if (error) throw error;
   asegurarFilasAfectadas(data, 'No se elimino ningun reporte en Supabase.');
 }
 
-function asegurarFilasAfectadas(data, mensaje) {
-  if (!Array.isArray(data) || data.length === 0) {
-    throw new Error(`${mensaje} Verifica que el registro exista y que Supabase permita UPDATE/DELETE para esta tabla.`);
-  }
-}
+
 
 function actualizarStats() {
   const encontradas = publicacionesUsuario.filter(pub => pub.tipo === 'encontrado').length;
@@ -373,28 +359,9 @@ function setSubmitLoading(loading) {
     : '<i class="bi bi-save me-1" aria-hidden="true"></i>Guardar cambios';
 }
 
-function getUsuarioActual() {
-  try {
-    return JSON.parse(localStorage.getItem('userLogged'));
-  } catch {
-    return null;
-  }
-}
-
-function normalizarImagenes(imagenes) {
-  const urls = (imagenes || [])
-    .map(img => img?.url)
-    .filter(Boolean);
-  return urls.length ? urls : ['imagenes/logo.png'];
-}
-
-function formatDate(value) {
-  if (!value) return 'Sin fecha';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
+/* ================================================================
+   HELPER LOCAL: Formatear fecha para input
+   ================================================================ */
 function formatDateInput(value) {
   if (!value) return '';
   if (/^\d{4}-\d{2}-\d{2}/.test(String(value))) {
@@ -410,28 +377,8 @@ function setText(id, value) {
   if (node) node.textContent = value;
 }
 
-function mostrarAlerta(mensaje, tipo = 'info') {
-  const alert = document.createElement('div');
-  alert.className = `alert alert-${tipo} alert-dismissible fade show mis-publicaciones-alert`;
-  alert.setAttribute('role', 'alert');
-  alert.innerHTML = `
-    ${escapeHTML(mensaje)}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"
-      aria-label="Cerrar"></button>
-  `;
-  document.body.appendChild(alert);
-
-  setTimeout(() => {
-    alert.remove();
-  }, 3500);
-}
-
-function escapeHTML(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
+function asegurarFilasAfectadas(data, mensaje) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(`${mensaje} Verifica que el registro exista y que Supabase permita UPDATE/DELETE para esta tabla.`);
+  }
 }

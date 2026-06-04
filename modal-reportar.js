@@ -1,15 +1,8 @@
 /**
  * modal-reportar.js
  * Lógica del modal para reportar objetos perdidos
- * Consistente con la tabla reportes de la BD
+ * Usa cliente centralizado de Supabase
  */
-// Verificamos si el cliente ya existe en el objeto window para no sobreescribirlo
-if (!window.supabaseClient) {
-  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-var supabaseClient = window.supabaseClient;
 
 // Almacenar archivos de imágenes
 let fotosReporteSeleccionadas = [];

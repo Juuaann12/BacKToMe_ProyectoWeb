@@ -1,14 +1,7 @@
 /* ================================================================
-   INDEX.JS – BackToMe (VERSIÓN FINAL CORREGIDA)
+   INDEX.JS – BackToMe
+   Versión optimizada usando funciones compartidas
    ================================================================ */
-
-// Configuración de Supabase
-if (!window.supabaseClient) {
-  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-var supabaseClient = window.supabaseClient;
 
 /* ----------------------------------------------------------------
    ESTADO GLOBAL
@@ -42,49 +35,49 @@ async function renderPublicaciones() {
   try {
     let rawData = [];
 
-    // 1. Cargar "Encontrados" (tabla publicaciones)
+    // 1. Cargar "Encontrados" — join con usuario para traer celular
     if (filtroActivo === 'todos' || filtroActivo === 'encontrado') {
       const { data, error } = await supabaseClient
         .from('publicaciones')
-        .select('*, imagenes_publicaciones(url)')
+        .select('*, imagenes_publicaciones(url), usuario(celular)')
         .order('fecha_creacion', { ascending: false });
       
       if (error) throw error;
       rawData = [...rawData, ...(data || []).map(p => ({
-        id: p.id,
-        titulo: p.titulo,
-        tipo: 'encontrado',
-        lugar: p.ubicacion,
-        fecha: p.fecha_encontrado,
-        fecha_iso: p.fecha_creacion,
+        id:          p.id,
+        titulo:      p.titulo,
+        tipo:        'encontrado',
+        lugar:       p.ubicacion,
+        fecha:       p.fecha_encontrado,
+        fecha_iso:   p.fecha_creacion,
         fecha_creacion: p.fecha_creacion,
-        categoria: p.categoria,
+        categoria:   p.categoria,
         descripcion: p.descripcion,
-        contacto: p.contacto || p.telefono || p.email || '',
-        imagenes: normalizarImagenes(p.imagenes_publicaciones)
+        contacto:    p.usuario?.celular || 'No disponible',
+        imagenes:    normalizarImagenes(p.imagenes_publicaciones)
       }))];
     }
 
-    // 2. Cargar "Perdidos" (tabla reportes)
+    // 2. Cargar "Perdidos" — join con usuario para traer celular
     if (filtroActivo === 'todos' || filtroActivo === 'perdido') {
       const { data, error } = await supabaseClient
         .from('reportes')
-        .select('*, imagenes_reportes(url)')
+        .select('*, imagenes_reportes(url), usuario(celular)')
         .order('fecha_creacion', { ascending: false });
       
       if (error) throw error;
       rawData = [...rawData, ...(data || []).map(r => ({
-        id: r.id,
-        titulo: r.titulo || `Objeto Perdido: ${r.categoria}`,
-        tipo: 'perdido',
-        categoria: r.categoria,
+        id:          r.id,
+        titulo:      r.titulo || `Objeto Perdido: ${r.categoria}`,
+        tipo:        'perdido',
+        categoria:   r.categoria,
         descripcion: r.descripcion,
-        lugar: r.sector,
-        fecha: r.fecha_perdida,
-        fecha_iso: r.fecha_creacion,
+        lugar:       r.sector,
+        fecha:       r.fecha_perdida,
+        fecha_iso:   r.fecha_creacion,
         fecha_creacion: r.fecha_creacion,
-        contacto: r.contacto || r.telefono || r.email || '',
-        imagenes: normalizarImagenes(r.imagenes_reportes)
+        contacto:    r.usuario?.celular || 'No disponible',
+        imagenes:    normalizarImagenes(r.imagenes_reportes)
       }))];
     }
 
@@ -101,6 +94,7 @@ async function renderPublicaciones() {
       return;
     }
 
+    // Usar DocumentFragment para evitar reflows
     const fragment = document.createDocumentFragment();
     publicacionesCache.slice(0, 6).forEach(pub => {
       const col = document.createElement('div');
@@ -150,13 +144,6 @@ function buildCardHTML(pub) {
   `;
 }
 
-function normalizarImagenes(imagenes) {
-  const urls = (imagenes || [])
-    .map(img => img?.url)
-    .filter(Boolean);
-  return urls.length ? urls : ['imagenes/logo.png'];
-}
-
 function initPublicacionCards() {
   document.querySelectorAll('.publicacion-card').forEach(card => {
     const abrir = () => abrirDetallePublicacion(card.dataset.publicacionId);
@@ -178,61 +165,68 @@ function abrirDetallePublicacion(cacheId) {
   const badgeClass = pub.tipo === 'perdido' ? 'bg-danger' : 'bg-success';
   const badgeLabel = pub.tipo === 'perdido' ? 'Objeto perdido' : 'Objeto encontrado';
 
-  document.getElementById('detallePublicacionTitulo').textContent = pub.titulo || 'Publicacion';
-  document.getElementById('detallePublicacionBadge').className = `badge ${badgeClass}`;
-  document.getElementById('detallePublicacionBadge').textContent = badgeLabel;
+  document.getElementById('detallePublicacionTitulo').textContent    = pub.titulo || 'Publicacion';
+  document.getElementById('detallePublicacionBadge').className       = `badge ${badgeClass}`;
+  document.getElementById('detallePublicacionBadge').textContent     = badgeLabel;
   document.getElementById('detallePublicacionCategoria').textContent = pub.categoria || 'Sin categoria';
-  document.getElementById('detallePublicacionLugar').textContent = pub.lugar || 'Sin ubicacion';
-  document.getElementById('detallePublicacionFecha').textContent = formatDate(pub.fecha);
+  document.getElementById('detallePublicacionLugar').textContent     = pub.lugar || 'Sin ubicacion';
+  document.getElementById('detallePublicacionFecha').textContent     = formatDate(pub.fecha);
   document.getElementById('detallePublicacionDescripcion').textContent = pub.descripcion || 'Sin descripcion disponible.';
-  document.getElementById('detallePublicacionContacto').textContent = pub.contacto || 'Contacta al publicador desde la plataforma.';
 
+  // Mostrar celular como enlace tel:
+  const contactoEl = document.getElementById('detallePublicacionContacto');
+  if (pub.contacto && pub.contacto !== 'No disponible') {
+    contactoEl.innerHTML = `
+      <a href="tel:${pub.contacto}" class="text-decoration-none">
+        <i class="bi bi-telephone-fill me-1 text-success"></i>${pub.contacto}
+      </a>`;
+  } else {
+    contactoEl.textContent = 'Contacto no disponible';
+  }
+
+  // Renderizar carousel de fotos usando DocumentFragment
   const carouselInner = document.getElementById('detallePublicacionFotos');
-  const indicators = document.getElementById('detallePublicacionIndicadores');
-  const carousel = document.getElementById('detallePublicacionCarousel');
-  const controls = modalEl.querySelectorAll('.detalle-carousel-control');
-  carouselInner.innerHTML = '';
-  indicators.innerHTML = '';
-
+  const indicators    = document.getElementById('detallePublicacionIndicadores');
+  const carousel      = document.getElementById('detallePublicacionCarousel');
+  const controls      = modalEl.querySelectorAll('.detalle-carousel-control');
+  
+  const fragmentImages = document.createDocumentFragment();
+  const fragmentIndicators = document.createDocumentFragment();
+  
   pub.imagenes.forEach((url, index) => {
     const active = index === 0 ? 'active' : '';
-    carouselInner.innerHTML += `
-      <div class="carousel-item ${active}">
-        <img src="${escapeHTML(url)}" class="detalle-publicacion-img"
-          alt="Foto ${index + 1} de ${escapeHTML(pub.titulo)}"
-          onerror="this.src='imagenes/logo.png'">
-      </div>
+    const itemDiv = document.createElement('div');
+    itemDiv.className = `carousel-item ${active}`;
+    itemDiv.innerHTML = `
+      <img src="${escapeHTML(url)}" class="detalle-publicacion-img"
+        alt="Foto ${index + 1} de ${escapeHTML(pub.titulo)}"
+        onerror="this.src='imagenes/logo.png'">
     `;
-    indicators.innerHTML += `
-      <button type="button" data-bs-target="#detallePublicacionCarousel"
-        data-bs-slide-to="${index}" class="${active}" aria-current="${index === 0 ? 'true' : 'false'}"
-        aria-label="Foto ${index + 1}"></button>
-    `;
+    fragmentImages.appendChild(itemDiv);
+    
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = active;
+    btn.setAttribute('data-bs-target', '#detallePublicacionCarousel');
+    btn.setAttribute('data-bs-slide-to', index);
+    btn.setAttribute('aria-current', index === 0 ? 'true' : 'false');
+    btn.setAttribute('aria-label', `Foto ${index + 1}`);
+    fragmentIndicators.appendChild(btn);
   });
+  
+  carouselInner.innerHTML = '';
+  indicators.innerHTML = '';
+  carouselInner.appendChild(fragmentImages);
+  indicators.appendChild(fragmentIndicators);
 
   const mostrarControles = pub.imagenes.length > 1;
   indicators.style.display = mostrarControles ? 'flex' : 'none';
   controls.forEach(control => control.style.display = mostrarControles ? 'flex' : 'none');
+  
   bootstrap.Carousel.getOrCreateInstance(carousel).to(0);
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
-function formatDate(value) {
-  if (!value) return 'Sin fecha';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function escapeHTML(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
-}
 /* ================================================================
    🔹 NAVBAR - MARCAR OPCIÓN ACTIVA
    ================================================================ */
@@ -251,7 +245,6 @@ function initNavbarActive() {
     });
   });
   
-  // Marcar Inicio como activo por defecto
   if (navLinks[0] && filtroActivo === 'todos') {
     navLinks[0].classList.add('active');
   }
@@ -289,56 +282,43 @@ function initFiltrosMenu() {
 }
 
 /* ================================================================
-   🔹 AUTENTICACIÓN - 🔥 CONTROL DEL BOTÓN DEL MENÚ 🔥
+   🔹 AUTENTICACIÓN - CONTROL DEL BOTÓN DEL MENÚ
    ================================================================ */
 function initAuthUI() {
-  const user = JSON.parse(localStorage.getItem('userLogged'));
-  const btnOpenMenu = document.getElementById('btnOpenMenu');
+  const user          = getCurrentUser();
+  const btnOpenMenu   = document.getElementById('btnOpenMenu');
   const userEmailSpan = document.querySelector('#menuLateral .offcanvas-body .mb-4 strong');
-  const btnLogin = document.querySelector('.btn-outline-secondary');
-  const btnRegister = document.querySelector('.btn-primary');
-  const adminLink = document.querySelector('a[href="admin.html"]');
+  const btnLogin      = document.querySelector('.btn-outline-secondary');
+  const btnRegister   = document.querySelector('.btn-primary');
+  const adminLink     = document.querySelector('a[href="admin.html"]');
   
   console.log('🔐 Verificando sesión:', user ? `Usuario: ${user.email}, Rol: ${user.rol}` : 'No hay sesión');
   
   if (user && user.email) {
-    // ✅ USUARIO LOGUEADO
     if (btnOpenMenu) {
       btnOpenMenu.style.display = 'block';
       btnOpenMenu.style.visibility = 'visible';
-      console.log('✅ Botón menú: VISIBLE');
     }
-    if (btnLogin) btnLogin.style.display = 'none';
-    if (btnRegister) btnRegister.style.display = 'none';
+    if (btnLogin)      btnLogin.style.display    = 'none';
+    if (btnRegister)   btnRegister.style.display = 'none';
     if (userEmailSpan) userEmailSpan.textContent = user.email;
     
-    // 🔒 Ocultar Panel Admin si no es administrador
     if (adminLink) {
-      if (user.rol === 'admin') {
-        adminLink.style.display = 'flex';
-        console.log('✅ Panel Admin: VISIBLE (usuario admin)');
-      } else {
-        adminLink.style.display = 'none';
-        console.log('❌ Panel Admin: OCULTO (usuario no admin)');
-      }
+      adminLink.style.display = user.rol === 'admin' ? 'flex' : 'none';
     }
   } else {
-    // ❌ NO LOGUEADO
     if (btnOpenMenu) {
-      btnOpenMenu.style.display = 'none';
+      btnOpenMenu.style.display    = 'none';
       btnOpenMenu.style.visibility = 'hidden';
-      console.log('❌ Botón menú: OCULTO');
     }
-    if (btnLogin) btnLogin.style.display = 'inline-block';
+    if (btnLogin)    btnLogin.style.display    = 'inline-block';
     if (btnRegister) btnRegister.style.display = 'inline-block';
-    if (adminLink) adminLink.style.display = 'none';
+    if (adminLink)   adminLink.style.display   = 'none';
   }
   
-  // Inicializar offcanvas de forma segura
   if (btnOpenMenu) {
     const menuLateral = document.getElementById('menuLateral');
     if (menuLateral) {
-      // Usar getOrCreateInstance para evitar duplicar instancias
       const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(menuLateral);
       btnOpenMenu.addEventListener('click', (e) => {
         e.preventDefault();
@@ -347,7 +327,6 @@ function initAuthUI() {
     }
   }
   
-  // 🔐 Actualizar estado de botones de publicar y reportar
   updateButtonAuthStatus();
 }
 
@@ -355,16 +334,11 @@ function initAuthUI() {
    🔹 BOTONES LOGIN / REGISTER
    ================================================================ */
 function initAuthButtons() {
-  const btnLogin = document.querySelector('.btn-outline-secondary');
+  const btnLogin    = document.querySelector('.btn-outline-secondary');
   const btnRegister = document.querySelector('.btn-primary');
 
-  btnLogin?.addEventListener('click', () => {
-    window.location.href = 'login.html';
-  });
-
-  btnRegister?.addEventListener('click', () => {
-    window.location.href = 'registro.html';
-  });
+  btnLogin?.addEventListener('click',    () => { window.location.href = 'login.html';    });
+  btnRegister?.addEventListener('click', () => { window.location.href = 'registro.html'; });
 }
 
 /* ================================================================
@@ -372,9 +346,8 @@ function initAuthButtons() {
    ================================================================ */
 function initLogout() {
   const btn = document.getElementById('btnLogout');
-
   btn?.addEventListener('click', () => {
-    localStorage.removeItem('userLogged');
+    clearUser();
     window.location.reload();
   });
 }
@@ -383,55 +356,34 @@ function initLogout() {
    🔹 ACTUALIZAR ESTADO DE BOTONES (PUBLICAR Y REPORTAR)
    ================================================================ */
 function updateButtonAuthStatus() {
-  const user = JSON.parse(localStorage.getItem('userLogged'));
+  const user = getCurrentUser();
   
-  // Botones en el hero
-  const btnPublicarHero = document.getElementById('btnPublicarHero');
-  const btnReportarHero = document.getElementById('btnReportarHero');
-  
-  // Botones en el menú lateral
-  const btnPublicarMenu = document.getElementById('btnPublicarMenu');
-  const btnReportarMenu = document.getElementById('btnReportarMenu');
+  const btnPublicarHero  = document.getElementById('btnPublicarHero');
+  const btnReportarHero  = document.getElementById('btnReportarHero');
+  const btnPublicarMenu  = document.getElementById('btnPublicarMenu');
+  const btnReportarMenu  = document.getElementById('btnReportarMenu');
   
   if (user && user.email) {
-    // ✅ USUARIO LOGUEADO - HABILITAR BOTONES
     if (btnPublicarHero) btnPublicarHero.disabled = false;
     if (btnReportarHero) btnReportarHero.disabled = false;
     
-    if (btnPublicarMenu) {
-      btnPublicarMenu.style.pointerEvents = 'auto';
-      btnPublicarMenu.style.opacity = '1';
-      btnPublicarMenu.style.cursor = 'pointer';
-      btnPublicarMenu.removeAttribute('disabled');
-    }
-    
-    if (btnReportarMenu) {
-      btnReportarMenu.style.pointerEvents = 'auto';
-      btnReportarMenu.style.opacity = '1';
-      btnReportarMenu.style.cursor = 'pointer';
-      btnReportarMenu.removeAttribute('disabled');
-    }
-    
-    console.log('✅ Botones de publicar y reportar: HABILITADOS');
+    [btnPublicarMenu, btnReportarMenu].forEach(btn => {
+      if (!btn) return;
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity       = '1';
+      btn.style.cursor        = 'pointer';
+      btn.removeAttribute('disabled');
+    });
   } else {
-    // ❌ NO LOGUEADO - DESHABILITAR BOTONES
     if (btnPublicarHero) btnPublicarHero.disabled = true;
     if (btnReportarHero) btnReportarHero.disabled = true;
     
-    if (btnPublicarMenu) {
-      btnPublicarMenu.style.pointerEvents = 'none';
-      btnPublicarMenu.style.opacity = '0.5';
-      btnPublicarMenu.style.cursor = 'not-allowed';
-      btnPublicarMenu.setAttribute('disabled', 'true');
-    }
-    
-    if (btnReportarMenu) {
-      btnReportarMenu.style.pointerEvents = 'none';
-      btnReportarMenu.style.opacity = '0.5';
-      btnReportarMenu.style.cursor = 'not-allowed';
-      btnReportarMenu.setAttribute('disabled', 'true');
-    }
-    
-    console.log('❌ Botones de publicar y reportar: DESHABILITADOS');
+    [btnPublicarMenu, btnReportarMenu].forEach(btn => {
+      if (!btn) return;
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity       = '0.5';
+      btn.style.cursor        = 'not-allowed';
+      btn.setAttribute('disabled', 'true');
+    });
   }
 }

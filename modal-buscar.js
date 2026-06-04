@@ -1,14 +1,8 @@
 /**
  * modal-buscar.js
  * Lógica del modal para buscar objetos encontrados y reportados
+ * Usa cliente centralizado de Supabase
  */
-
-if (!window.supabaseClient) {
-  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th';
-  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-var supabaseClient = window.supabaseClient;
 
 document.addEventListener('DOMContentLoaded', function() {
   initBuscador();

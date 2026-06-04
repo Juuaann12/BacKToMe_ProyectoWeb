@@ -1,7 +1,6 @@
-// Configuración de Supabase
-const supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-const supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+/* ================================================================
+   REGISTER.JS – BackToMe · Registro de nuevos usuarios
+   ================================================================ */
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 /* ----------------------------------------------------------------
@@ -39,12 +38,10 @@ function initTogglePassword() {
 
 /* ----------------------------------------------------------------
    VALIDACIÓN EN TIEMPO REAL – Confirmar contraseña
-   Marca el campo como inválido mientras las contraseñas no coincidan.
    ---------------------------------------------------------------- */
 function initConfirmPasswordValidation() {
   const confirmInput = document.getElementById('confirmPassword');
   if (!confirmInput) return;
-
   confirmInput.addEventListener('input', validateConfirmPassword);
 }
 
@@ -52,26 +49,21 @@ function validateConfirmPassword() {
   const password        = document.getElementById('password').value;
   const confirmInput    = document.getElementById('confirmPassword');
   const confirmPassword = confirmInput.value;
-
   const mismatch = confirmPassword && password !== confirmPassword;
 
-  /* setCustomValidity vacío = válido; con texto = inválido */
   confirmInput.setCustomValidity(mismatch ? 'Las contraseñas no coinciden' : '');
   confirmInput.classList.toggle('is-invalid', mismatch);
 }
 
 /* ----------------------------------------------------------------
-   ⭐ NUEVA VALIDACIÓN EN TIEMPO REAL – Cédula Ecuatoriana
-   Valida formato y algoritmo oficial mientras el usuario escribe.
+   VALIDACIÓN EN TIEMPO REAL – Cédula Ecuatoriana
    ---------------------------------------------------------------- */
 function initCedulaValidation() {
   const cedulaInput = document.getElementById('cedula');
   if (!cedulaInput) return;
 
   cedulaInput.addEventListener('input', (e) => {
-    // Solo permite números
     e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    
     validateCedulaField();
   });
 
@@ -81,22 +73,11 @@ function initCedulaValidation() {
 function validateCedulaField() {
   const cedulaInput = document.getElementById('cedula');
   const cedula = cedulaInput.value;
-
-  // Acepta cualquier cantidad de dígitos (mínimo 1)
   const isValid = cedula.length >= 1 && validateCedulaEcuatoriana(cedula);
   
   cedulaInput.setCustomValidity(isValid ? '' : 'Cédula inválida');
   cedulaInput.classList.toggle('is-invalid', !isValid);
   cedulaInput.classList.toggle('is-valid', isValid);
-}
-
-/* ----------------------------------------------------------------
-   VALIDACIÓN DE CÉDULA
-   Acepta cualquier número de dígitos (solo números).
-   ---------------------------------------------------------------- */
-function validateCedulaEcuatoriana(cedula) {
-  // Solo acepta dígitos, sin límite de longitud
-  return /^[0-9]+$/.test(cedula) && cedula.length > 0;
 }
 
 /* ----------------------------------------------------------------

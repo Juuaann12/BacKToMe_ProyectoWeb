@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <head>
     <!-- ============================================================
        META & CONFIGURACIÓN BÁSICA
@@ -149,7 +148,8 @@
             name="profilePhoto"
             accept="image/*"
             required>
-          <small class="form-text text-muted">JPG, PNG o WEBP. Máximo 2 MB.</small>
+          <small class="form-text text-muted">JPG, PNG o WEBP. Máximo 2
+            MB.</small>
           <div class="image-preview d-none" id="profilePhotoPreview"></div>
         </div>
 
@@ -289,6 +289,11 @@
        ============================================================ -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Scripts base compartidos -->
+    <script src="supabase-client.js"></script>
+    <script src="utils.js"></script>
+    <!-- Script de la página -->
     <script src="register.js"></script>
   </body>
 </html>

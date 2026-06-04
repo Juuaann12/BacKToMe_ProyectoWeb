@@ -2,14 +2,6 @@
    ADMIN.JS  –  BackToMe · Panel de Administración
    Gestiona usuarios y publicaciones: tabs, filtro y render.
    ================================================================ */
-// Configuración de Supabase
-// Verificamos si el cliente ya existe en el objeto window para no sobreescribirlo
-if (!window.supabaseClient) {
-  var supabaseUrl = 'https://nspadsjyeeakerarojsm.supabase.co';
-  var supabaseKey = 'sb_publishable_hW1N-mn5qgGRrt4DXgz1Zg_eqS2N4Th'; 
-  window.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-}
-var supabaseClient = window.supabaseClient;
 
 /* ----------------------------------------------------------------
    PROTECCIÓN DE RUTA
@@ -77,18 +69,45 @@ async function cargarDatos() {
     
     if (errorReportes) throw errorReportes;
 
+    // Cargar imágenes de publicaciones
+    const { data: imagenesPub, error: errorImagenesPub } = await supabaseClient
+      .from('imagenes_publicaciones')
+      .select('id_publicacion, url');
+    if (errorImagenesPub) console.warn('⚠️ Error cargando imágenes de publicaciones:', errorImagenesPub);
+
+    // Cargar imágenes de reportes
+    const { data: imagenesRep, error: errorImagenesRep } = await supabaseClient
+      .from('imagenes_reportes')
+      .select('id_reporte, url');
+    if (errorImagenesRep) console.warn('⚠️ Error cargando imágenes de reportes:', errorImagenesRep);
+
+    // Agrupar imágenes por ID
+    const mapaImagenesPub = {};
+    (imagenesPub || []).forEach(img => {
+      if (!mapaImagenesPub[img.id_publicacion]) mapaImagenesPub[img.id_publicacion] = [];
+      mapaImagenesPub[img.id_publicacion].push(img.url);
+    });
+
+    const mapaImagenesRep = {};
+    (imagenesRep || []).forEach(img => {
+      if (!mapaImagenesRep[img.id_reporte]) mapaImagenesRep[img.id_reporte] = [];
+      mapaImagenesRep[img.id_reporte].push(img.url);
+    });
+
     publicacionesData = [
       ...(publicaciones || []).map(pub => ({
         ...pub,
         adminTipo: 'encontrado',
-        adminTabla: 'publicaciones'
+        adminTabla: 'publicaciones',
+        imagenes: mapaImagenesPub[pub.id] || []
       })),
       ...(reportes || []).map(rep => ({
         ...rep,
         adminTipo: 'perdido',
         adminTabla: 'reportes',
         ubicacion: rep.sector,
-        fecha_encontrado: rep.fecha_perdida
+        fecha_encontrado: rep.fecha_perdida,
+        imagenes: mapaImagenesRep[rep.id] || []
       }))
     ].sort((a, b) => new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0));
     
@@ -160,15 +179,37 @@ function render() {
 
   const fragment = document.createDocumentFragment();
 
-  datos.forEach((dato, index) => {
-    const item = document.createElement('div');
-    item.className = 'item';
-    item.setAttribute('role', 'listitem');
-    item.innerHTML = tipoActual === 'usuarios'
-      ? buildUsuarioHTML(dato, index)
-      : buildPublicacionHTML(dato, index);
-    fragment.appendChild(item);
-  });
+  if (tipoActual === 'publicaciones') {
+    // Agrupar publicaciones por usuario
+    const publicacionesPorUsuario = agruparPublicacionesPorUsuario(datos);
+    
+    Object.entries(publicacionesPorUsuario).forEach(([cedulaUsuario, pubsDelUsuario]) => {
+      const usuario = usuariosData.find(u => u.cedula === cedulaUsuario);
+      const grupoDiv = document.createElement('div');
+      grupoDiv.className = 'usuario-grupo mb-4';
+      grupoDiv.innerHTML = buildEncabezadoUsuario(usuario);
+      
+      pubsDelUsuario.forEach((pub, idxPub) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.setAttribute('role', 'listitem');
+        const idxGlobal = publicacionesData.findIndex(p => p.id === pub.id && p.cedula_usuario === cedulaUsuario);
+        item.innerHTML = buildPublicacionHTML(pub, idxGlobal);
+        grupoDiv.appendChild(item);
+      });
+      
+      fragment.appendChild(grupoDiv);
+    });
+  } else {
+    // Renderizar usuarios sin agrupar
+    datos.forEach((dato, index) => {
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.setAttribute('role', 'listitem');
+      item.innerHTML = buildUsuarioHTML(dato, index);
+      fragment.appendChild(item);
+    });
+  }
 
   lista.innerHTML = '';
   lista.appendChild(fragment);
@@ -179,6 +220,47 @@ function render() {
       eliminar(idx);
     });
   });
+}
+
+/* ----------------------------------------------------------------
+   AGRUPAR PUBLICACIONES POR USUARIO
+   ---------------------------------------------------------------- */
+function agruparPublicacionesPorUsuario(publicaciones) {
+  const grupos = {};
+  publicaciones.forEach(pub => {
+    const cedula = pub.cedula_usuario || 'sin-usuario';
+    if (!grupos[cedula]) grupos[cedula] = [];
+    grupos[cedula].push(pub);
+  });
+  return grupos;
+}
+
+/* ----------------------------------------------------------------
+   BUILD ENCABEZADO USUARIO (Grupo de publicaciones)
+   ---------------------------------------------------------------- */
+function buildEncabezadoUsuario(usuario) {
+  if (!usuario) {
+    return `
+      <div class="encabezado-usuario p-3 mb-3 border-start border-4 border-warning bg-light rounded">
+        <p class="text-muted mb-0">⚠️ Usuario no encontrado</p>
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="encabezado-usuario p-3 mb-3 border-start border-4 border-primary bg-light rounded">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>👤 ${escapeHTML(usuario.nombre || 'N/A')}</strong></p>
+          <small class="text-muted d-block">📋 Cédula: ${escapeHTML(usuario.cedula || 'N/A')}</small>
+        </div>
+        <div class="col-md-6">
+          <small class="text-muted d-block">📧 Correo: ${escapeHTML(usuario.correo || 'N/A')}</small>
+          <small class="text-muted d-block">📱 Celular: ${escapeHTML(usuario.celular || 'N/A')}</small>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 /* ----------------------------------------------------------------
@@ -273,27 +355,72 @@ function buildUsuarioHTML(usuario, index) {
 }
 
 /* ----------------------------------------------------------------
-   BUILD PUBLICACIÓN HTML
+   BUILD PUBLICACIÓN HTML (MEJORADO CON FOTOS Y DETALLES)
    ---------------------------------------------------------------- */
 function buildPublicacionHTML(pub, index) {
   const tipo = pub.adminTipo || pub.tipo || pub.tipopublicacion || 'publicacion';
   const badgeClass = tipo === 'perdido' ? 'bg-danger' : 'bg-success';
   const autor = pub.autor || pub.usuario || pub.email || pub.cedula_usuario || 'Anonimo';
-  const titulo = pub.titulo || pub.titulo_publicacion || `Objeto perdido: ${pub.categoria || 'Sin categoria'}`;
-  const ubicacion = pub.ubicacion || pub.sector || 'N/A';
+  const titulo = escapeHTML(pub.titulo || pub.titulo_publicacion || `Objeto ${tipo}: ${pub.categoria || 'Sin categoria'}`);
+  const ubicacion = escapeHTML(pub.ubicacion || pub.sector || 'N/A');
+  const categoria = escapeHTML(pub.categoria || 'N/A');
+  const descripcion = escapeHTML(pub.descripcion || pub.descripcion_reporte || 'Sin descripción');
+  const imagenes = pub.imagenes || [];
+  const fechaCreacion = pub.fecha_creacion ? formatDate(pub.fecha_creacion) : 'N/A';
+
+  let galeriaHTML = '';
+  if (imagenes.length > 0) {
+    galeriaHTML = `
+      <div class="mt-3">
+        <strong class="d-block mb-2">📷 Fotos de la publicación:</strong>
+        <div class="row g-2">
+          ${imagenes.map(url => `
+            <div class="col-auto">
+              <a href="${url}" target="_blank" title="Ver en tamaño completo">
+                <img src="${url}" alt="Foto publicación" 
+                     class="img-thumbnail" 
+                     style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;">
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
 
   return `
-    <div>
-      <strong>${titulo}</strong>
-      <p class="text-muted small mb-1">Autor: ${autor}</p>
-      <p class="text-muted small mb-1">Ubicacion: ${ubicacion}</p>
-      <span class="badge ${badgeClass}">${tipo}</span>
+    <div class="publicacion-admin-card p-3 border rounded-2 bg-white">
+      <div class="row g-2">
+        <div class="col-12">
+          <h5 class="mb-2">${titulo}</h5>
+          <span class="badge ${badgeClass} mb-2">${tipo.toUpperCase()}</span>
+        </div>
+      </div>
+      
+      <div class="row g-2 mb-2 small">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Categoría:</strong> ${categoria}</p>
+          <p class="mb-1"><strong>Ubicación:</strong> ${ubicacion}</p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Fecha:</strong> ${fechaCreacion}</p>
+          <p class="mb-1"><strong>Estado:</strong> <span class="badge bg-info">Activo</span></p>
+        </div>
+      </div>
+
+      <div class="mb-2">
+        <strong>Descripción:</strong>
+        <p class="text-muted mb-0 small">${descripcion}</p>
+      </div>
+
+      ${galeriaHTML}
     </div>
+    
     <button
-      class="btn btn-danger btn-sm btn-eliminar"
+      class="btn btn-danger btn-sm btn-eliminar mt-2"
       data-index="${index}"
-      aria-label="Eliminar publicacion ${titulo}">
-      <i class="bi bi-trash" aria-hidden="true"></i>
+      aria-label="Eliminar publicación ${titulo}">
+      <i class="bi bi-trash" aria-hidden="true"></i> Eliminar
     </button>
   `;
 }
