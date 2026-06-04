@@ -12,7 +12,7 @@ let publicacionesCache = [];
 /* ----------------------------------------------------------------
    INIT
    ---------------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 BackToMe Iniciado');
   
   renderPublicaciones();

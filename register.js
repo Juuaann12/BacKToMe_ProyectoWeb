@@ -3,10 +3,6 @@
    ================================================================ */
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
-/* ----------------------------------------------------------------
-   INICIALIZACIÓN
-   Espera a que el DOM esté listo antes de registrar eventos.
-   ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
   initConfirmPasswordValidation();
@@ -374,10 +370,7 @@ async function registerUser({ name, email, cedula, phone, password, fotoPerfil, 
 
     return { success: true };
 
-  } catch (err) {
-    console.error('Error en registro:', err);
-    return { success: false, message: err.message || 'Error al registrar usuario' };
-  }
+  return await response.json();
 }
 
 /* ----------------------------------------------------------------

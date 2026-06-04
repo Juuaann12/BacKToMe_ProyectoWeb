@@ -5,7 +5,6 @@
 
 /* ----------------------------------------------------------------
    PROTECCIÓN DE RUTA
-   Solo permite acceso a usuarios con rol 'admin'
    ---------------------------------------------------------------- */
 function checkAdminAccess() {
   const user = JSON.parse(localStorage.getItem('userLogged'));
@@ -38,14 +37,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!checkAdminAccess()) return;
   
   await cargarDatos();
-  
   actualizarEstadisticas();
   render();
   initLogout();
 });
 
 /* ----------------------------------------------------------------
-   CARGAR DATOS DESDE SUPABASE
+   CARGAR DATOS DESDE BACKEND
    ---------------------------------------------------------------- */
 async function cargarDatos() {
   try {
@@ -112,7 +110,6 @@ async function cargarDatos() {
     ].sort((a, b) => new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0));
     
     console.log('✅ Datos cargados:', usuariosData.length, 'usuarios,', publicacionesData.length, 'publicaciones');
-    
   } catch (err) {
     console.error('❌ Error cargando datos:', err);
     alert('Error al cargar datos. Revisa la consola.');
@@ -547,9 +544,7 @@ function asegurarFilasAfectadas(data, mensaje) {
 function filtrar() {
   const texto = document.getElementById('buscador')?.value.toLowerCase() ?? '';
   document.querySelectorAll('#lista .item').forEach(item => {
-    item.style.display = item.textContent.toLowerCase().includes(texto)
-      ? 'flex'
-      : 'none';
+    item.style.display = item.textContent.toLowerCase().includes(texto) ? 'flex' : 'none';
   });
 }
 
@@ -558,8 +553,11 @@ function filtrar() {
    ---------------------------------------------------------------- */
 function initLogout() {
   const btn = document.getElementById('btnLogout');
-  btn?.addEventListener('click', () => {
-    localStorage.removeItem('userLogged');
+  btn?.addEventListener('click', async () => {
+    await fetch('api/logout.php', {
+      method: 'POST',
+      credentials: 'same-origin'
+    });
     window.location.href = 'login.html';
   });
 }

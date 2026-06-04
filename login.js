@@ -5,7 +5,6 @@
 
 /* ----------------------------------------------------------------
    INICIALIZACIÓN
-   Espera a que el DOM esté listo antes de registrar eventos.
    ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
@@ -14,13 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ----------------------------------------------------------------
    TOGGLE CONTRASEÑA
-   Alterna el tipo del input entre "password" y "text",
-   y actualiza el ícono correspondiente.
    ---------------------------------------------------------------- */
 function initTogglePassword() {
-  const toggleBtn   = document.getElementById('togglePassword');
+  const toggleBtn = document.getElementById('togglePassword');
   const passwordInput = document.getElementById('password');
-  const passIcon    = document.getElementById('passIcon');
+  const passIcon = document.getElementById('passIcon');
 
   if (!toggleBtn || !passwordInput || !passIcon) return;
 
@@ -34,7 +31,6 @@ function initTogglePassword() {
 
 /* ----------------------------------------------------------------
    FORMULARIO DE LOGIN
-   Escucha el submit y delega en handleLogin().
    ---------------------------------------------------------------- */
 function initLoginForm() {
   const loginForm = document.getElementById('loginForm');
@@ -48,10 +44,9 @@ function initLoginForm() {
 async function handleLogin(e) {
   e.preventDefault();
 
-  const email    = document.getElementById('email').value.trim();
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
 
-  /* --- Validaciones del lado del cliente --- */
   if (!email || !password) {
     showError('Completa todos los campos');
     return;
@@ -62,9 +57,8 @@ async function handleLogin(e) {
     return;
   }
 
-  /* --- Referencias al botón (para manejo del estado de carga) --- */
-  const btn       = document.querySelector('.btn-login');
-  const btnText   = document.querySelector('.btn-text');
+  const btn = document.querySelector('.btn-login');
+  const btnText = document.querySelector('.btn-text');
   const btnLoader = document.querySelector('.btn-loader');
 
   setLoading(true, btn, btnText, btnLoader);
@@ -89,10 +83,10 @@ async function handleLogin(e) {
       showError('Correo o contraseña incorrectos');
     }
 
+    window.location.href = 'index.html';
   } catch (err) {
     console.error('Error en login:', err);
     showError(err.message || 'Ocurrió un error. Intenta de nuevo.');
-
   } finally {
     setLoading(false, btn, btnText, btnLoader);
   }
