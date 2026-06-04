@@ -1,5 +1,6 @@
 /* ================================================================
    LOGIN.JS  –  BackToMe · Lógica de autenticación
+   CONEXIÓN:  Supabase - Tabla usuario
    ================================================================ */
 
 /* ----------------------------------------------------------------
@@ -23,8 +24,8 @@ function initTogglePassword() {
   toggleBtn.addEventListener('click', () => {
     const isPassword = passwordInput.type === 'password';
     passwordInput.type = isPassword ? 'text' : 'password';
-    passIcon.classList.toggle('bi-eye', !isPassword);
-    passIcon.classList.toggle('bi-eye-slash', isPassword);
+    passIcon.classList.toggle('bi-eye',       !isPassword);
+    passIcon.classList.toggle('bi-eye-slash',  isPassword);
   });
 }
 
@@ -34,13 +35,12 @@ function initTogglePassword() {
 function initLoginForm() {
   const loginForm = document.getElementById('loginForm');
   if (!loginForm) return;
-
   loginForm.addEventListener('submit', handleLogin);
 }
 
-/* ----------------------------------------------------------------
+/* ================================================================
    HANDLER PRINCIPAL DE LOGIN
-   ---------------------------------------------------------------- */
+   ================================================================ */
 async function handleLogin(e) {
   e.preventDefault();
 
@@ -64,16 +64,23 @@ async function handleLogin(e) {
   setLoading(true, btn, btnText, btnLoader);
 
   try {
-    const response = await fetch('api/login.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ email, password })
-    });
+    const user = await checkUser(email, password);
 
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Correo o contraseña incorrectos');
+    if (user) {
+      /* Guardar sesión usando función compartida */
+      saveUser({
+        email: user.email,
+        name: user.name,
+        cedula: user.cedula,
+        rol: user.rol,
+        celular: user.celular,
+        logged: true,
+      });
+
+      // Redirigir al inicio
+      window.location.href = 'index.html';
+    } else {
+      showError('Correo o contraseña incorrectos');
     }
 
     window.location.href = 'index.html';
@@ -85,28 +92,31 @@ async function handleLogin(e) {
   }
 }
 
-/* ----------------------------------------------------------------
-   UTILIDADES
-   ---------------------------------------------------------------- */
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+/* ================================================================
+   CHECK USER - Autenticación con Supabase
+   ================================================================ */
+async function checkUser(email, password) {
+  try {
+    const { data: user, error } = await supabaseClient
+      .from('usuario')
+      .select('*')
+      .eq('correo', email)
+      .single();
 
-function showError(message) {
-  const errorDiv = document.getElementById('errorMessage');
-  const errorText = document.getElementById('errorText');
+    if (error || !user) return null;
 
-  if (!errorDiv || !errorText) return;
+    if (user.contrasena !== password) return null;
 
-  errorText.textContent = message;
-  errorDiv.classList.remove('d-none');
+    return {
+      email: user.correo,
+      name: user.nombre,
+      cedula: user.cedula,
+      rol: user.rol,
+      celular: user.celular
+    };
 
-  clearTimeout(showError._timer);
-  showError._timer = setTimeout(() => errorDiv.classList.add('d-none'), 5000);
-}
-
-function setLoading(loading, btn, btnText, btnLoader) {
-  if (btn) btn.disabled = loading;
-  if (btnText) btnText.classList.toggle('d-none', loading);
-  if (btnLoader) btnLoader.classList.toggle('d-none', !loading);
+  } catch (err) {
+    console.error('Error en checkUser:', err);
+    return null;
+  }
 }

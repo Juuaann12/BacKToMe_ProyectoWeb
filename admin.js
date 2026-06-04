@@ -6,31 +6,21 @@
 /* ----------------------------------------------------------------
    PROTECCIÓN DE RUTA
    ---------------------------------------------------------------- */
-async function checkAdminAccess() {
-  try {
-    const response = await fetch('api/get_session.php', {
-      credentials: 'same-origin'
-    });
-    const result = await response.json();
-
-    if (!result.logged) {
-      window.location.href = 'login.html';
-      return false;
-    }
-
-    if ((result.user?.rol || '') !== 'admin') {
-      alert('⛔ Acceso restringido. Solo administradores.');
-      window.location.href = 'index.html';
-      return false;
-    }
-
-    window.currentUser = result.user;
-    return true;
-  } catch (err) {
-    console.error('Error verificando sesión:', err);
+function checkAdminAccess() {
+  const user = JSON.parse(localStorage.getItem('userLogged'));
+  
+  if (!user || !user.email) {
     window.location.href = 'login.html';
     return false;
   }
+  
+  if (user.rol !== 'admin') {
+    alert('⛔ Acceso restringido. Solo administradores.');
+    window.location.href = 'index.html';
+    return false;
+  }
+  
+  return true;
 }
 
 /* ----------------------------------------------------------------
@@ -44,8 +34,8 @@ let publicacionesData = [];
    INICIALIZACIÓN
    ---------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!await checkAdminAccess()) return;
-
+  if (!checkAdminAccess()) return;
+  
   await cargarDatos();
   actualizarEstadisticas();
   render();
@@ -57,27 +47,68 @@ document.addEventListener('DOMContentLoaded', async () => {
    ---------------------------------------------------------------- */
 async function cargarDatos() {
   try {
-    const usuariosResponse = await fetch('api/get_usuarios.php', {
-      credentials: 'same-origin'
+    const { data: usuarios, error: errorUsuarios } = await supabaseClient
+      .from('usuario')
+      .select('*')
+      .order('nombre', { ascending: true });
+    
+    if (errorUsuarios) throw errorUsuarios;
+    usuariosData = usuarios || [];
+    
+    const { data: publicaciones, error: errorPublicaciones } = await supabaseClient
+      .from('publicaciones')
+      .select('*');
+    
+    if (errorPublicaciones) throw errorPublicaciones;
+
+    const { data: reportes, error: errorReportes } = await supabaseClient
+      .from('reportes')
+      .select('*');
+    
+    if (errorReportes) throw errorReportes;
+
+    // Cargar imágenes de publicaciones
+    const { data: imagenesPub, error: errorImagenesPub } = await supabaseClient
+      .from('imagenes_publicaciones')
+      .select('id_publicacion, url');
+    if (errorImagenesPub) console.warn('⚠️ Error cargando imágenes de publicaciones:', errorImagenesPub);
+
+    // Cargar imágenes de reportes
+    const { data: imagenesRep, error: errorImagenesRep } = await supabaseClient
+      .from('imagenes_reportes')
+      .select('id_reporte, url');
+    if (errorImagenesRep) console.warn('⚠️ Error cargando imágenes de reportes:', errorImagenesRep);
+
+    // Agrupar imágenes por ID
+    const mapaImagenesPub = {};
+    (imagenesPub || []).forEach(img => {
+      if (!mapaImagenesPub[img.id_publicacion]) mapaImagenesPub[img.id_publicacion] = [];
+      mapaImagenesPub[img.id_publicacion].push(img.url);
     });
-    const publicacionesResponse = await fetch('api/get_publicaciones.php', {
-      credentials: 'same-origin'
+
+    const mapaImagenesRep = {};
+    (imagenesRep || []).forEach(img => {
+      if (!mapaImagenesRep[img.id_reporte]) mapaImagenesRep[img.id_reporte] = [];
+      mapaImagenesRep[img.id_reporte].push(img.url);
     });
 
-    const usuariosResult = await usuariosResponse.json();
-    const publicacionesResult = await publicacionesResponse.json();
-
-    if (!usuariosResponse.ok || !usuariosResult.success) {
-      throw new Error(usuariosResult.message || 'Error al cargar usuarios');
-    }
-
-    if (!publicacionesResponse.ok || !publicacionesResult.success) {
-      throw new Error(publicacionesResult.message || 'Error al cargar publicaciones');
-    }
-
-    usuariosData = usuariosResult.usuarios || [];
-    publicacionesData = publicacionesResult.publicaciones || [];
-
+    publicacionesData = [
+      ...(publicaciones || []).map(pub => ({
+        ...pub,
+        adminTipo: 'encontrado',
+        adminTabla: 'publicaciones',
+        imagenes: mapaImagenesPub[pub.id] || []
+      })),
+      ...(reportes || []).map(rep => ({
+        ...rep,
+        adminTipo: 'perdido',
+        adminTabla: 'reportes',
+        ubicacion: rep.sector,
+        fecha_encontrado: rep.fecha_perdida,
+        imagenes: mapaImagenesRep[rep.id] || []
+      }))
+    ].sort((a, b) => new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0));
+    
     console.log('✅ Datos cargados:', usuariosData.length, 'usuarios,', publicacionesData.length, 'publicaciones');
   } catch (err) {
     console.error('❌ Error cargando datos:', err);
@@ -86,20 +117,17 @@ async function cargarDatos() {
 }
 
 /* ----------------------------------------------------------------
-   ESTADÍSTICAS – Actualiza los contadores del panel
+   ESTADÍSTICAS
    ---------------------------------------------------------------- */
 function actualizarEstadisticas() {
-  setStatValue('statUsuarios', usuariosData.length);
+  const totalReportes = publicacionesData.filter(pub => pub.adminTipo === 'perdido').length;
+
+  setStatValue('statUsuarios',      usuariosData.length);
   setStatValue('statPublicaciones', publicacionesData.length);
-  setStatValue('statNuevos', 0);
-  setStatValue('statReportes', 0);
+  setStatValue('statNuevos',        0);
+  setStatValue('statReportes',      totalReportes);
 }
 
-/**
- * Actualiza el texto de un elemento de estadística.
- * @param {string} id    - ID del elemento.
- * @param {number} valor - Valor a mostrar.
- */
 function setStatValue(id, valor) {
   const el = document.getElementById(id);
   if (el) el.textContent = valor;
@@ -107,14 +135,10 @@ function setStatValue(id, valor) {
 
 /* ----------------------------------------------------------------
    CAMBIAR TAB
-   Llama desde el atributo onclick del HTML.
-   @param {string}      tipo - 'usuarios' | 'publicaciones'
-   @param {HTMLElement} btn  - Botón clicado (para actualizar clase active)
    ---------------------------------------------------------------- */
 function cambiarTab(tipo, btn) {
   tipoActual = tipo;
 
-  /* Actualizar clases y aria-selected en todos los tabs */
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.remove('active');
     t.setAttribute('aria-selected', 'false');
@@ -122,7 +146,6 @@ function cambiarTab(tipo, btn) {
   btn.classList.add('active');
   btn.setAttribute('aria-selected', 'true');
 
-  /* Actualizar placeholder del buscador */
   const buscador = document.getElementById('buscador');
   if (buscador) {
     buscador.value = '';
@@ -136,7 +159,6 @@ function cambiarTab(tipo, btn) {
 
 /* ----------------------------------------------------------------
    RENDER
-   Genera los items de la lista según el tab activo.
    ---------------------------------------------------------------- */
 function render() {
   const lista = document.getElementById('lista');
@@ -154,20 +176,41 @@ function render() {
 
   const fragment = document.createDocumentFragment();
 
-  datos.forEach((dato, index) => {
-    const item = document.createElement('div');
-    item.className = 'item';
-    item.setAttribute('role', 'listitem');
-    item.innerHTML = tipoActual === 'usuarios'
-      ? buildUsuarioHTML(dato, index)
-      : buildPublicacionHTML(dato, index);
-    fragment.appendChild(item);
-  });
+  if (tipoActual === 'publicaciones') {
+    // Agrupar publicaciones por usuario
+    const publicacionesPorUsuario = agruparPublicacionesPorUsuario(datos);
+    
+    Object.entries(publicacionesPorUsuario).forEach(([cedulaUsuario, pubsDelUsuario]) => {
+      const usuario = usuariosData.find(u => u.cedula === cedulaUsuario);
+      const grupoDiv = document.createElement('div');
+      grupoDiv.className = 'usuario-grupo mb-4';
+      grupoDiv.innerHTML = buildEncabezadoUsuario(usuario);
+      
+      pubsDelUsuario.forEach((pub, idxPub) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.setAttribute('role', 'listitem');
+        const idxGlobal = publicacionesData.findIndex(p => p.id === pub.id && p.cedula_usuario === cedulaUsuario);
+        item.innerHTML = buildPublicacionHTML(pub, idxGlobal);
+        grupoDiv.appendChild(item);
+      });
+      
+      fragment.appendChild(grupoDiv);
+    });
+  } else {
+    // Renderizar usuarios sin agrupar
+    datos.forEach((dato, index) => {
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.setAttribute('role', 'listitem');
+      item.innerHTML = buildUsuarioHTML(dato, index);
+      fragment.appendChild(item);
+    });
+  }
 
   lista.innerHTML = '';
   lista.appendChild(fragment);
 
-  /* Registrar eventos de eliminación */
   lista.querySelectorAll('.btn-eliminar').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.index, 10);
@@ -176,17 +219,55 @@ function render() {
   });
 }
 
-/**
- * HTML de un item de usuario.
- * @param {Object} usuario
- * @param {number} index
- * @returns {string}
- */
+/* ----------------------------------------------------------------
+   AGRUPAR PUBLICACIONES POR USUARIO
+   ---------------------------------------------------------------- */
+function agruparPublicacionesPorUsuario(publicaciones) {
+  const grupos = {};
+  publicaciones.forEach(pub => {
+    const cedula = pub.cedula_usuario || 'sin-usuario';
+    if (!grupos[cedula]) grupos[cedula] = [];
+    grupos[cedula].push(pub);
+  });
+  return grupos;
+}
+
+/* ----------------------------------------------------------------
+   BUILD ENCABEZADO USUARIO (Grupo de publicaciones)
+   ---------------------------------------------------------------- */
+function buildEncabezadoUsuario(usuario) {
+  if (!usuario) {
+    return `
+      <div class="encabezado-usuario p-3 mb-3 border-start border-4 border-warning bg-light rounded">
+        <p class="text-muted mb-0">⚠️ Usuario no encontrado</p>
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="encabezado-usuario p-3 mb-3 border-start border-4 border-primary bg-light rounded">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>👤 ${escapeHTML(usuario.nombre || 'N/A')}</strong></p>
+          <small class="text-muted d-block">📋 Cédula: ${escapeHTML(usuario.cedula || 'N/A')}</small>
+        </div>
+        <div class="col-md-6">
+          <small class="text-muted d-block">📧 Correo: ${escapeHTML(usuario.correo || 'N/A')}</small>
+          <small class="text-muted d-block">📱 Celular: ${escapeHTML(usuario.celular || 'N/A')}</small>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------------------------------------------------
+   BUILD USUARIO HTML  ✅ FOTOS VISIBLES
+   ---------------------------------------------------------------- */
 function buildUsuarioHTML(usuario, index) {
-  // Mostrar todos los datos del usuario
   return `
     <div class="usuario-card p-3 border rounded-3 bg-white shadow-sm mb-3">
       <div class="row g-3">
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -199,6 +280,7 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -211,6 +293,7 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
+
         <div class="col-md-6">
           <div class="row">
             <div class="col-6">
@@ -223,17 +306,40 @@ function buildUsuarioHTML(usuario, index) {
             </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <small class="text-muted d-block">Fotos</small>
-          <div class="d-flex gap-2">
-            ${usuario.foto_perfil 
-              ? `<a href="${usuario.foto_perfil}" target="_blank" class="btn btn-sm btn-outline-secondary">Perfil</a>` 
-              : '<span class="text-muted small">Sin foto</span>'}
-            ${usuario.foto_cedula 
-              ? `<a href="${usuario.foto_cedula}" target="_blank" class="btn btn-sm btn-outline-secondary">Cédula</a>` 
-              : '<span class="text-muted small">Sin foto</span>'}
+
+        <!-- ✅ FOTOS VISIBLES -->
+        <div class="col-12">
+          <div class="row g-3">
+
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Foto de perfil</small>
+              ${usuario.foto_perfil
+                ? `<a href="${usuario.foto_perfil}" target="_blank" title="Clic para ver en tamaño completo">
+                     <img src="${usuario.foto_perfil}"
+                       alt="Foto de perfil de ${usuario.nombre || ''}"
+                       class="img-thumbnail"
+                       style="width: 120px; height: 120px; object-fit: cover; cursor: pointer;">
+                   </a>`
+                : '<span class="text-muted small">Sin foto de perfil</span>'
+              }
+            </div>
+
+            <div class="col-6">
+              <small class="text-muted d-block mb-1">Foto de cédula</small>
+              ${usuario.foto_cedula
+                ? `<a href="${usuario.foto_cedula}" target="_blank" title="Clic para ver en tamaño completo">
+                     <img src="${usuario.foto_cedula}"
+                       alt="Foto de cédula de ${usuario.nombre || ''}"
+                       class="img-thumbnail"
+                       style="width: 120px; height: 120px; object-fit: cover; cursor: pointer;">
+                   </a>`
+                : '<span class="text-muted small">Sin foto de cédula</span>'
+              }
+            </div>
+
           </div>
         </div>
+
       </div>
     </div>
     <button
@@ -245,80 +351,196 @@ function buildUsuarioHTML(usuario, index) {
   `;
 }
 
-/**
- * HTML de un item de publicación.
- * @param {Object} pub
- * @param {number} index
- * @returns {string}
- */
+/* ----------------------------------------------------------------
+   BUILD PUBLICACIÓN HTML (MEJORADO CON FOTOS Y DETALLES)
+   ---------------------------------------------------------------- */
 function buildPublicacionHTML(pub, index) {
-  // Detectar tipo (puede ser 'tipo' o 'tipopublicacion')
-  const tipo = pub.tipo || pub.tipopublicacion || 'publicacion';
+  const tipo = pub.adminTipo || pub.tipo || pub.tipopublicacion || 'publicacion';
   const badgeClass = tipo === 'perdido' ? 'bg-danger' : 'bg-success';
-  
-  // Detectar autor (puede ser 'autor', 'usuario', 'email')
-  const autor = pub.autor || pub.usuario || pub.email || 'Anónimo';
-  
-  // Detectar título
-  const titulo = pub.titulo || pub.titulo_publicacion || 'Sin título';
-  
+  const autor = pub.autor || pub.usuario || pub.email || pub.cedula_usuario || 'Anonimo';
+  const titulo = escapeHTML(pub.titulo || pub.titulo_publicacion || `Objeto ${tipo}: ${pub.categoria || 'Sin categoria'}`);
+  const ubicacion = escapeHTML(pub.ubicacion || pub.sector || 'N/A');
+  const categoria = escapeHTML(pub.categoria || 'N/A');
+  const descripcion = escapeHTML(pub.descripcion || pub.descripcion_reporte || 'Sin descripción');
+  const imagenes = pub.imagenes || [];
+  const fechaCreacion = pub.fecha_creacion ? formatDate(pub.fecha_creacion) : 'N/A';
+
+  let galeriaHTML = '';
+  if (imagenes.length > 0) {
+    galeriaHTML = `
+      <div class="mt-3">
+        <strong class="d-block mb-2">📷 Fotos de la publicación:</strong>
+        <div class="row g-2">
+          ${imagenes.map(url => `
+            <div class="col-auto">
+              <a href="${url}" target="_blank" title="Ver en tamaño completo">
+                <img src="${url}" alt="Foto publicación" 
+                     class="img-thumbnail" 
+                     style="width: 100px; height: 100px; object-fit: cover; cursor: pointer;">
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   return `
-    <div>
-      <strong>${titulo}</strong>
-      <p class="text-muted small mb-1">Autor: ${autor}</p>
-      <span class="badge ${badgeClass}">${tipo}</span>
+    <div class="publicacion-admin-card p-3 border rounded-2 bg-white">
+      <div class="row g-2">
+        <div class="col-12">
+          <h5 class="mb-2">${titulo}</h5>
+          <span class="badge ${badgeClass} mb-2">${tipo.toUpperCase()}</span>
+        </div>
+      </div>
+      
+      <div class="row g-2 mb-2 small">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Categoría:</strong> ${categoria}</p>
+          <p class="mb-1"><strong>Ubicación:</strong> ${ubicacion}</p>
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Fecha:</strong> ${fechaCreacion}</p>
+          <p class="mb-1"><strong>Estado:</strong> <span class="badge bg-info">Activo</span></p>
+        </div>
+      </div>
+
+      <div class="mb-2">
+        <strong>Descripción:</strong>
+        <p class="text-muted mb-0 small">${descripcion}</p>
+      </div>
+
+      ${galeriaHTML}
     </div>
+    
     <button
-      class="btn btn-danger btn-sm btn-eliminar"
+      class="btn btn-danger btn-sm btn-eliminar mt-2"
       data-index="${index}"
       aria-label="Eliminar publicación ${titulo}">
-      <i class="bi bi-trash" aria-hidden="true"></i>
+      <i class="bi bi-trash" aria-hidden="true"></i> Eliminar
     </button>
   `;
 }
 
 /* ----------------------------------------------------------------
    ELIMINAR
-   Elimina del sistema y actualiza la vista.
    ---------------------------------------------------------------- */
 async function eliminar(index) {
   const dato = tipoActual === 'usuarios' ? usuariosData[index] : publicacionesData[index];
   if (!dato) return;
 
-  const confirmar = confirm(`¿Estás seguro de eliminar este ${tipoActual === 'usuarios' ? 'usuario' : 'publicación'}?`);
+  const nombreItem = tipoActual === 'usuarios'
+    ? `usuario ${dato.nombre || dato.cedula || ''}`
+    : `publicacion ${dato.titulo || dato.categoria || ''}`;
+  const confirmar = confirm(`Seguro que quieres eliminar este ${nombreItem}? Esta accion tambien se borrara de Supabase.`);
   if (!confirmar) return;
 
   try {
-    const tabla = tipoActual === 'usuarios' ? 'usuario' : 'publicaciones';
-    const idCampo = tipoActual === 'usuarios' ? 'cedula' : 'id';
-    const response = await fetch('api/delete.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ table: tabla, id: dato[idCampo] })
-    });
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Error al eliminar');
-    }
-
     if (tipoActual === 'usuarios') {
+      await eliminarUsuarioCompleto(dato.cedula);
       usuariosData.splice(index, 1);
-      setStatValue('statUsuarios', usuariosData.length);
+      publicacionesData = publicacionesData.filter(pub => pub.cedula_usuario !== dato.cedula);
     } else {
+      await eliminarPublicacionCompleta(dato);
       publicacionesData.splice(index, 1);
-      setStatValue('statPublicaciones', publicacionesData.length);
     }
 
+    actualizarEstadisticas();
     render();
-    alert('✅ Eliminado correctamente');
+    alert('Eliminado correctamente en Supabase');
   } catch (err) {
-    console.error('❌ Error al eliminar:', err);
-    alert(err.message || 'Error al eliminar. Revisa la consola.');
+    console.error('Error al eliminar en Supabase:', err);
+    alert(`Error al eliminar en Supabase: ${err.message || 'Revisa la consola.'}`);
   }
 }
 
+async function eliminarUsuarioCompleto(cedula) {
+  if (!cedula) throw new Error('El usuario no tiene cedula asociada.');
+
+  const { data: publicaciones, error: errorPublicaciones } = await supabaseClient
+    .from('publicaciones')
+    .select('id')
+    .eq('cedula_usuario', cedula);
+  if (errorPublicaciones) throw errorPublicaciones;
+
+  const { data: reportes, error: errorReportes } = await supabaseClient
+    .from('reportes')
+    .select('id')
+    .eq('cedula_usuario', cedula);
+  if (errorReportes) throw errorReportes;
+
+  for (const pub of publicaciones || []) {
+    await eliminarPublicacionEncontrada(pub.id, cedula);
+  }
+
+  for (const rep of reportes || []) {
+    await eliminarReporte(rep.id, cedula);
+  }
+
+  const { data, error } = await supabaseClient
+    .from('usuario')
+    .delete()
+    .eq('cedula', cedula)
+    .select('cedula');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ningun usuario en Supabase.');
+}
+
+async function eliminarPublicacionCompleta(pub) {
+  if (pub.adminTabla === 'reportes' || pub.adminTipo === 'perdido') {
+    await eliminarReporte(pub.id, pub.cedula_usuario);
+    return;
+  }
+  await eliminarPublicacionEncontrada(pub.id, pub.cedula_usuario);
+}
+
+async function eliminarPublicacionEncontrada(id, cedulaUsuario) {
+  const { error: imgError } = await supabaseClient
+    .from('imagenes_publicaciones')
+    .delete()
+    .eq('id_publicacion', id);
+  if (imgError) throw imgError;
+
+  let query = supabaseClient
+    .from('publicaciones')
+    .delete()
+    .eq('id', id);
+
+  if (cedulaUsuario) query = query.eq('cedula_usuario', cedulaUsuario);
+
+  const { data, error } = await query.select('id');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ninguna publicacion en Supabase.');
+}
+
+async function eliminarReporte(id, cedulaUsuario) {
+  const { error: imgError } = await supabaseClient
+    .from('imagenes_reportes')
+    .delete()
+    .eq('id_reporte', id);
+  if (imgError) throw imgError;
+
+  let query = supabaseClient
+    .from('reportes')
+    .delete()
+    .eq('id', id);
+
+  if (cedulaUsuario) query = query.eq('cedula_usuario', cedulaUsuario);
+
+  const { data, error } = await query.select('id');
+  if (error) throw error;
+  asegurarFilasAfectadas(data, 'No se elimino ningun reporte en Supabase.');
+}
+
+function asegurarFilasAfectadas(data, mensaje) {
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error(`${mensaje} Verifica que el registro exista y que Supabase permita DELETE para esta tabla.`);
+  }
+}
+
+/* ----------------------------------------------------------------
+   FILTRO
+   ---------------------------------------------------------------- */
 function filtrar() {
   const texto = document.getElementById('buscador')?.value.toLowerCase() ?? '';
   document.querySelectorAll('#lista .item').forEach(item => {
@@ -326,6 +548,9 @@ function filtrar() {
   });
 }
 
+/* ----------------------------------------------------------------
+   LOGOUT
+   ---------------------------------------------------------------- */
 function initLogout() {
   const btn = document.getElementById('btnLogout');
   btn?.addEventListener('click', async () => {

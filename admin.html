@@ -95,7 +95,7 @@
             </a>
           </li>
           <li role="menuitem">
-            <a href="#" class="menu-link">
+            <a href="mis-publicaciones.html" class="menu-link">
               <i class="bi bi-file-text" aria-hidden="true"></i> Mis
               publicaciones
             </a>
@@ -268,11 +268,41 @@
     </main>
 
     <!-- ============================================================
+       MODAL: VISTA DE FOTOGRAFIA DE USUARIO
+       ============================================================ -->
+    <div class="modal fade" id="fotoUsuarioModal" tabindex="-1"
+      aria-labelledby="fotoUsuarioModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="fotoUsuarioModalLabel">
+              Fotografia de usuario
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"
+              aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body text-center bg-light">
+            <img
+              src
+              alt="Fotografia de usuario"
+              class="admin-photo-modal-img"
+              id="fotoUsuarioModalImg">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
        SCRIPTS
        Bootstrap Bundle + lógica del panel en admin.js
        ============================================================ -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Scripts base compartidos -->
+    <script src="supabase-client.js"></script>
+    <script src="utils.js"></script>
+    <!-- Script del panel admin -->
     <script src="admin.js"></script>
   </body>
 </html>

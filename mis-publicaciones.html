@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BackToMe - Mis publicaciones">
+    <title>BackToMe - Mis publicaciones</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <nav class="btm-navbar navbar px-4 py-2" role="navigation"
+      aria-label="Navegacion principal">
+      <a href="index.html" class="btm-logo" aria-label="Volver al inicio">
+        <div class="btm-logo-img">
+          <img src="imagenes/logo.png" alt="BackToMe" width="38" height="38">
+        </div>
+        <span class="btm-logo-text">
+          <span class="bold-part">Back</span><span
+            class="light-part">ToMe</span>
+        </span>
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="index.html" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-house" aria-hidden="true"></i> Inicio
+        </a>
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#menuLateral"
+          aria-controls="menuLateral"
+          aria-label="Abrir menu de usuario">
+          <i class="bi bi-list fs-4 text-secondary" aria-hidden="true"></i>
+        </button>
+      </div>
+    </nav>
+
+    <main class="btm-main px-4 py-5">
+      <section class="mis-publicaciones-hero mb-4">
+        <div>
+          <p class="text-primary fw-bold mb-1">Mi cuenta</p>
+          <h1 class="fw-black mb-2">Mis publicaciones</h1>
+          <p class="text-muted mb-0">
+            Revisa, edita o elimina los objetos que has publicado en BackToMe.
+          </p>
+        </div>
+        <a href="index.html" class="btn btn-pastel-primary">
+          <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>Nueva
+          publicacion
+        </a>
+      </section>
+
+      <section class="mis-publicaciones-toolbar mb-4"
+        aria-label="Filtros de publicaciones">
+        <div class="input-group">
+          <span class="input-group-text bg-white">
+            <i class="bi bi-search text-muted" aria-hidden="true"></i>
+          </span>
+          <input type="search" class="form-control" id="buscarMisPublicaciones"
+            placeholder="Buscar por titulo, categoria o ubicacion"
+            aria-label="Buscar publicaciones">
+        </div>
+        <select class="form-select" id="filtroMisPublicaciones"
+          aria-label="Filtrar publicaciones">
+          <option value="todos">Todas</option>
+          <option value="encontrado">Encontradas</option>
+          <option value="perdido">Perdidas</option>
+        </select>
+      </section>
+
+      <section class="row g-4 mb-4" aria-label="Resumen">
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div>
+              <p class="stat-label">Total</p>
+              <h2 class="stat-value" id="statMisTotal">0</h2>
+            </div>
+            <div class="stat-icon icon-posts">
+              <i class="bi bi-file-text" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div>
+              <p class="stat-label">Encontradas</p>
+              <h2 class="stat-value" id="statMisEncontradas">0</h2>
+            </div>
+            <div class="stat-icon icon-posts">
+              <i class="bi bi-check-circle" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card">
+            <div>
+              <p class="stat-label">Perdidas</p>
+              <h2 class="stat-value" id="statMisPerdidas">0</h2>
+            </div>
+            <div class="stat-icon icon-reports">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="gestion-contenido bg-white p-3 p-md-4 shadow-sm">
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+          <div>
+            <h2 class="h4 fw-bold mb-1">Publicaciones creadas</h2>
+            <p class="text-muted mb-0 small">
+              Solo aparecen las publicaciones asociadas a tu cedula.
+            </p>
+          </div>
+          <button class="btn btn-outline-primary btn-sm" id="btnRecargarMis">
+            <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>
+            Recargar
+          </button>
+        </div>
+
+        <div id="misPublicacionesLista" class="mis-publicaciones-list"
+          aria-live="polite"></div>
+      </section>
+    </main>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="menuLateral"
+      aria-labelledby="menuLateralLabel">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="menuLateralLabel">Mi cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+          aria-label="Cerrar menu"></button>
+      </div>
+      <div class="offcanvas-body">
+        <div class="mb-4">
+          <strong id="menuUserEmail">Usuario</strong>
+          <p class="text-muted small mb-0">Usuario verificado</p>
+        </div>
+
+        <ul class="menu" role="menu">
+          <li role="menuitem">
+            <a href="index.html" class="menu-link">
+              <i class="bi bi-house" aria-hidden="true"></i> Inicio
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="mis-publicaciones.html" class="menu-link active">
+              <i class="bi bi-file-text" aria-hidden="true"></i> Mis
+              publicaciones
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-chat" aria-hidden="true"></i> Mensajes
+            </a>
+          </li>
+          <li role="menuitem">
+            <a href="#" class="menu-link">
+              <i class="bi bi-person" aria-hidden="true"></i> Perfil
+            </a>
+          </li>
+        </ul>
+
+        <hr>
+        <button class="logout btn-link border-0 bg-transparent" id="btnLogout">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar
+          sesion
+        </button>
+      </div>
+    </div>
+
+    <div class="modal fade" id="editarPublicacionModal" tabindex="-1"
+      aria-labelledby="editarPublicacionTitulo" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+          <div class="modal-header bg-gradient-primary text-white border-0">
+            <div>
+              <span class="badge bg-light text-primary mb-1"
+                id="editarPublicacionTipo">Publicacion</span>
+              <h3 class="modal-title h5 fw-bold mb-0"
+                id="editarPublicacionTitulo">Editar publicacion</h3>
+            </div>
+            <button type="button" class="btn-close btn-close-white"
+              data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+
+          <form id="editarPublicacionForm" class="needs-validation" novalidate>
+            <div class="modal-body p-4">
+              <input type="hidden" id="editCacheId">
+              <input type="hidden" id="editTipo">
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold" for="editTitulo">
+                    Titulo <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="editTitulo"
+                    required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold" for="editCategoria">
+                    Categoria <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" id="editCategoria" required>
+                    <option value>Selecciona una categoria</option>
+                    <option value="electronicos">Electronicos</option>
+                    <option value="documentos">Documentos</option>
+                    <option value="llaves">Llaves</option>
+                    <option value="bolsos y carteras">Bolsos y Carteras</option>
+                    <option value="accesorios personales">Accesorios
+                      Personales</option>
+                    <option value="ropa">Ropa</option>
+                    <option value="mascotas">Mascotas</option>
+                    <option value="motos">Motos</option>
+                    <option value="carros">Carros</option>
+                    <option value="otros">Otros</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label fw-bold" for="editDescripcion">
+                    Descripcion <span class="text-danger">*</span>
+                  </label>
+                  <textarea class="form-control" id="editDescripcion" rows="4"
+                    required></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold" for="editLugar">
+                    Ubicacion <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="editLugar"
+                    required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold" for="editFecha">
+                    Fecha <span class="text-danger">*</span>
+                  </label>
+                  <input type="date" class="form-control" id="editFecha"
+                    required>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <label class="form-label fw-bold">Fotos actuales</label>
+                <div id="editFotosActuales" class="mis-publicaciones-photos">
+                </div>
+                <p class="text-muted small mb-0 mt-2">
+                  La edicion de fotos se mantiene separada por ahora; aqui
+                  puedes revisar las imagenes existentes.
+                </p>
+              </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+              <button type="button" class="btn btn-secondary"
+                data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1" aria-hidden="true"></i>Guardar
+                cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Scripts base compartidos -->
+    <script src="supabase-client.js"></script>
+    <script src="utils.js"></script>
+    <!-- Script de la página -->
+    <script src="mis-publicaciones.js"></script>
+  </body>
+</html>

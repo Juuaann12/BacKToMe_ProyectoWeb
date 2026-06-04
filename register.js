@@ -1,11 +1,13 @@
 /* ================================================================
-   REGISTER.JS  –  BackToMe · Lógica de registro
+   REGISTER.JS – BackToMe · Registro de nuevos usuarios
    ================================================================ */
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 document.addEventListener('DOMContentLoaded', () => {
   initTogglePassword();
   initConfirmPasswordValidation();
-  initCedulaValidation();
+  initCedulaValidation();  // ⭐ NUEVO: Validación en tiempo real de cédula
+  initImageInputs();
   initRegisterForm();
 });
 
@@ -32,12 +34,10 @@ function initTogglePassword() {
 
 /* ----------------------------------------------------------------
    VALIDACIÓN EN TIEMPO REAL – Confirmar contraseña
-   Marca el campo como inválido mientras las contraseñas no coincidan.
    ---------------------------------------------------------------- */
 function initConfirmPasswordValidation() {
   const confirmInput = document.getElementById('confirmPassword');
   if (!confirmInput) return;
-
   confirmInput.addEventListener('input', validateConfirmPassword);
 }
 
@@ -45,26 +45,21 @@ function validateConfirmPassword() {
   const password        = document.getElementById('password').value;
   const confirmInput    = document.getElementById('confirmPassword');
   const confirmPassword = confirmInput.value;
-
   const mismatch = confirmPassword && password !== confirmPassword;
 
-  /* setCustomValidity vacío = válido; con texto = inválido */
   confirmInput.setCustomValidity(mismatch ? 'Las contraseñas no coinciden' : '');
   confirmInput.classList.toggle('is-invalid', mismatch);
 }
 
 /* ----------------------------------------------------------------
-   ⭐ NUEVA VALIDACIÓN EN TIEMPO REAL – Cédula Ecuatoriana
-   Valida formato y algoritmo oficial mientras el usuario escribe.
+   VALIDACIÓN EN TIEMPO REAL – Cédula Ecuatoriana
    ---------------------------------------------------------------- */
 function initCedulaValidation() {
   const cedulaInput = document.getElementById('cedula');
   if (!cedulaInput) return;
 
   cedulaInput.addEventListener('input', (e) => {
-    // Solo permite números
     e.target.value = e.target.value.replace(/[^0-9]/g, '');
-    
     validateCedulaField();
   });
 
@@ -74,8 +69,6 @@ function initCedulaValidation() {
 function validateCedulaField() {
   const cedulaInput = document.getElementById('cedula');
   const cedula = cedulaInput.value;
-
-  // Acepta cualquier cantidad de dígitos (mínimo 1)
   const isValid = cedula.length >= 1 && validateCedulaEcuatoriana(cedula);
   
   cedulaInput.setCustomValidity(isValid ? '' : 'Cédula inválida');
@@ -84,12 +77,79 @@ function validateCedulaField() {
 }
 
 /* ----------------------------------------------------------------
-   VALIDACIÓN DE CÉDULA
-   Acepta cualquier número de dígitos (solo números).
+   PREVIEW Y VALIDACION DE IMAGENES
+   Valida tipo/tamano y muestra una vista previa antes del envio.
    ---------------------------------------------------------------- */
-function validateCedulaEcuatoriana(cedula) {
-  // Solo acepta dígitos, sin límite de longitud
-  return /^[0-9]+$/.test(cedula) && cedula.length > 0;
+function initImageInputs() {
+  setupImagePreview('profilePhoto', 'profilePhotoPreview');
+  setupImagePreview('cedulaPhoto', 'cedulaPhotoPreview');
+}
+
+function setupImagePreview(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (!input || !preview) return;
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    preview.classList.add('d-none');
+    preview.innerHTML = '';
+
+    if (!file) {
+      input.setCustomValidity('');
+      return;
+    }
+
+    const error = validateImageFile(file);
+    if (error) {
+      input.value = '';
+      input.setCustomValidity(error);
+      showError(error);
+      return;
+    }
+
+    input.setCustomValidity('');
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      preview.innerHTML = `<img src="${reader.result}" alt="Vista previa">`;
+      preview.classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function validateImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    return 'Solo se permiten archivos de imagen';
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return 'Cada imagen debe pesar maximo 2 MB';
+  }
+
+  return '';
+}
+
+function readImageAsText(inputId) {
+  const input = document.getElementById(inputId);
+  const file = input?.files?.[0];
+
+  if (!file) {
+    return Promise.resolve(null);
+  }
+
+  const error = validateImageFile(file);
+  if (error) {
+    return Promise.reject(new Error(error));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.readAsDataURL(file);
+  });
 }
 
 
@@ -123,9 +183,11 @@ async function handleRegister(e) {
   const password        = document.getElementById('password').value;
   const confirmPassword = document.getElementById('confirmPassword').value;
   const terms           = document.getElementById('terms').checked;
+  const profilePhoto    = document.getElementById('profilePhoto').files[0];
+  const cedulaPhoto     = document.getElementById('cedulaPhoto').files[0];
 
   /* Validar antes de cualquier petición */
-  if (!validateForm(name, email, cedula, password, confirmPassword, terms)) return;  // ⭐ Actualizado
+  if (!validateForm(name, email, cedula, phone, password, confirmPassword, terms, profilePhoto, cedulaPhoto)) return;  // ⭐ Actualizado
 
   /* Referencias al botón */
   const btn       = document.querySelector('.btn-register');
@@ -135,8 +197,45 @@ async function handleRegister(e) {
   setLoading(true, btn, btnText, btnLoader);
 
   try {
-    /* Registrar usuario en el backend PHP */
-    const result = await registerUser({ name, email, cedula, phone, password });  // ⭐ Cédula incluida
+    /* ============================================================
+       REGISTRO DE USUARIO
+       ─────────────────────────────────────────────────────────────
+       ACTUAL:  registerUser() → guarda en localStorage (solo dev).
+       SUPABASE: descomentar el bloque de abajo y eliminar registerUser().
+
+       ── Con Supabase ──────────────────────────────────────────────
+       import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+       const supabase = createClient(
+         'https://TU_PROJECT_ID.supabase.co',
+         'TU_ANON_PUBLIC_KEY'
+       );
+
+       const { data, error } = await supabase.auth.signUp({
+         email,
+         password,
+         options: {
+           data: { full_name: name, cedula, phone }   // ⭐ Cédula incluida
+         }
+       });
+
+       if (error) throw new Error(error.message);
+
+       // Supabase envía un correo de confirmación por defecto.
+       // Puedes mostrar un mensaje pidiendo al usuario que revise su correo.
+       ─────────────────────────────────────────────────────────────
+    ============================================================ */
+    const fotoPerfil = await readImageAsText('profilePhoto');
+    const fotoCedula = await readImageAsText('cedulaPhoto');
+    const result = await registerUser({
+      name,
+      email,
+      cedula,
+      phone,
+      password,
+      fotoPerfil,
+      fotoCedula
+    });  // ⭐ Cédula incluida
 
     if (result.success) {
       showSuccess('¡Cuenta creada exitosamente! Redirigiendo...');
@@ -159,7 +258,7 @@ async function handleRegister(e) {
    VALIDACIÓN DEL FORMULARIO (cliente) – ACTUALIZADA
    Retorna true si todo es válido; false y muestra error si no.
    ---------------------------------------------------------------- */
-function validateForm(name, email, cedula, password, confirmPassword, terms) {  // ⭐ Cédula agregada
+function validateForm(name, email, cedula, phone, password, confirmPassword, terms, profilePhoto, cedulaPhoto) {  // ⭐ Cédula agregada
   if (name.length < 2) {
     showError('El nombre debe tener al menos 2 caracteres');
     return false;
@@ -173,6 +272,33 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
   // ⭐ NUEVA VALIDACIÓN DE CÉDULA
   if (!validateCedulaEcuatoriana(cedula)) {
     showError('La cédula no es válida. Verifica los 10 dígitos.');
+    return false;
+  }
+
+  if (!phone) {
+    showError('Ingresa un numero de telefono');
+    return false;
+  }
+
+  if (!profilePhoto) {
+    showError('Selecciona una foto de perfil');
+    return false;
+  }
+
+  if (!cedulaPhoto) {
+    showError('Selecciona una foto de cedula');
+    return false;
+  }
+
+  const profilePhotoError = validateImageFile(profilePhoto);
+  if (profilePhotoError) {
+    showError(profilePhotoError);
+    return false;
+  }
+
+  const cedulaPhotoError = validateImageFile(cedulaPhoto);
+  if (cedulaPhotoError) {
+    showError(cedulaPhotoError);
     return false;
   }
 
@@ -194,13 +320,55 @@ function validateForm(name, email, cedula, password, confirmPassword, terms) {  
   return true;
 }
 
-async function registerUser({ name, email, cedula, phone, password }) {
-  const response = await fetch('api/register.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ name, email, cedula, phone, password })
-  });
+/* ----------------------------------------------------------------
+   REGISTRO DE USUARIO CON SUPABASE
+   Guarda el usuario en la tabla "usuario" de Supabase.
+   ---------------------------------------------------------------- */
+async function registerUser({ name, email, cedula, phone, password, fotoPerfil, fotoCedula }) {
+  try {
+    /* 1. Verificar si el correo ya existe */
+    const { data: existingEmail, error: emailError } = await supabaseClient
+      .from('usuario')
+      .select('correo')
+      .eq('correo', email)
+      .single();
+
+    if (existingEmail) {
+      return { success: false, message: 'El correo ya está registrado' };
+    }
+
+    /* 2. Verificar si la cédula ya existe */
+    const { data: existingCedula, error: cedulaError } = await supabaseClient
+      .from('usuario')
+      .select('cedula')
+      .eq('cedula', cedula)
+      .single();
+
+    if (existingCedula) {
+      return { success: false, message: 'La cédula ya está registrada' };
+    }
+
+    /* 3. Insertar usuario en la tabla "usuario" */
+    const { error: insertError } = await supabaseClient
+      .from('usuario')
+      .insert([
+        {
+          cedula: cedula,
+          nombre: name,
+          correo: email,
+          contrasena: password,  // ⚠️ En producción, usar hash del lado del servidor
+          celular: phone,
+          rol: 'usuario',
+          foto_perfil: fotoPerfil,
+          foto_cedula: fotoCedula
+        }
+      ]);
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return { success: true };
 
   return await response.json();
 }
@@ -255,7 +423,7 @@ function showError(message) {
  * @param {HTMLElement} btnLoader
  */
 function setLoading(loading, btn, btnText, btnLoader) {
-  if (btn) btn.disabled = loading;
-  if (btnText) btnText.classList.toggle('d-none', loading);
-  if (btnLoader) btnLoader.classList.toggle('d-none', !loading);
+  btn.disabled = loading;
+  btnText.classList.toggle('d-none',  loading);
+  btnLoader.classList.toggle('d-none', !loading);
 }
