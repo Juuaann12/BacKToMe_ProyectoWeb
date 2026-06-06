@@ -202,12 +202,27 @@ function buildPublicacionItemHTML(pub) {
 function abrirModalEdicion(cacheId) {
   const pub = publicacionesUsuario.find(item => item.cacheId === cacheId);
   const modalEl = document.getElementById('editarPublicacionModal');
-  if (!pub || !modalEl) return;
+  if (!pub) {
+    console.error('No se encontró la publicación para editar:', cacheId);
+    return;
+  }
+  if (!modalEl) {
+    console.error('No se encontró el modal de edición de publicaciones');
+    return;
+  }
 
   document.getElementById('editCacheId').value = pub.cacheId;
   document.getElementById('editTipo').value = pub.tipo;
   document.getElementById('editTitulo').value = pub.titulo || '';
-  document.getElementById('editCategoria').value = pub.categoria || '';
+
+  const categoriaInput = document.getElementById('editCategoria');
+  if (categoriaInput) {
+    const normalizedCat = String(pub.categoria || '').trim();
+    if (!setSelectValueIgnoreCase(categoriaInput, normalizedCat)) {
+      categoriaInput.value = '';
+    }
+  }
+
   document.getElementById('editDescripcion').value = pub.descripcion || '';
   document.getElementById('editLugar').value = pub.lugar || '';
   document.getElementById('editFecha').value = formatDateInput(pub.fecha);
@@ -375,6 +390,19 @@ function formatDateInput(value) {
 function setText(id, value) {
   const node = document.getElementById(id);
   if (node) node.textContent = value;
+}
+
+function setSelectValueIgnoreCase(select, value) {
+  if (!select || typeof value !== 'string') return false;
+  const normalizedValue = value.trim().toLowerCase();
+  for (const option of Array.from(select.options)) {
+    if (String(option.value).trim().toLowerCase() === normalizedValue ||
+        String(option.text).trim().toLowerCase() === normalizedValue) {
+      select.value = option.value;
+      return true;
+    }
+  }
+  return false;
 }
 
 function asegurarFilasAfectadas(data, mensaje) {
