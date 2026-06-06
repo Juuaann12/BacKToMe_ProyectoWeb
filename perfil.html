@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BackToMe – Editar perfil de usuario">
+  <title>BackToMe – Mi Perfil</title>
+
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons 1.11 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Google Fonts – Nunito -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Estilos compartidos del proyecto -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* ================================================================
+       ESTILOS EXCLUSIVOS DE PERFIL.HTML
+       Mismas variables CSS de styles.css
+       ================================================================ */
+
+    body {
+      background-color: var(--btm-bg-page);
+    }
+
+    /* ── Layout ── */
+    .perfil-wrapper {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .perfil-page-header { margin-bottom: 2rem; }
+    .perfil-page-header h1 { font-size: 1.75rem; font-weight: 900; color: var(--btm-text); }
+    .perfil-page-header p  { color: var(--btm-muted); font-size: 0.95rem; }
+
+    /* ── Tarjeta ── */
+    .perfil-card {
+      background: var(--btm-card-bg);
+      border: 1.5px solid var(--btm-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      margin-bottom: 1.75rem;
+      transition: box-shadow 0.3s ease;
+    }
+    .perfil-card:hover { box-shadow: 0 12px 36px rgba(47,158,232,.18); }
+
+    .perfil-card-header {
+      background: linear-gradient(135deg, var(--btm-light) 0%, #F0F9FF 100%);
+      border-bottom: 1.5px solid var(--btm-border);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .perfil-card-header h5 { font-weight: 800; font-size: 1rem; color: var(--btm-text); margin: 0; }
+    .perfil-card-header p  { font-size: 0.8rem; color: var(--btm-muted); margin: 2px 0 0; }
+
+    .header-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .header-icon.blue  { background: #dbeffe; color: var(--btm-primary-dark); }
+    .header-icon.green { background: #d4edda; color: var(--btm-success); }
+    .header-icon.red   { background: #fde8ea; color: var(--btm-danger); }
+
+    .perfil-card-body { padding: 1.75rem 1.5rem; }
+
+    /* ── Avatar ── */
+    .avatar-section {
+      display: flex; align-items: center; gap: 1.5rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, var(--btm-bg-page) 0%, #EAF5FF 100%);
+      border-bottom: 1.5px solid var(--btm-border);
+    }
+    .avatar-wrapper { position: relative; flex-shrink: 0; }
+
+    .avatar-img {
+      width: 100px; height: 100px; border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid var(--btm-primary);
+      box-shadow: 0 6px 20px rgba(91,188,255,.3);
+      display: block;
+    }
+    .avatar-placeholder {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--btm-primary-soft), var(--btm-primary-mid));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem; color: white;
+      border: 4px solid var(--btm-primary);
+      box-shadow: 0 6px 20px rgba(91,188,255,.3);
+    }
+    .avatar-edit-badge {
+      position: absolute; bottom: 4px; right: 4px;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--btm-primary); color: white;
+      border: 2px solid white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      transition: background .2s ease, transform .2s ease;
+    }
+    .avatar-edit-badge:hover { background: var(--btm-primary-dark); transform: scale(1.1); }
+
+    .avatar-info h6 { font-weight: 800; color: var(--btm-text); margin-bottom: 4px; font-size: 1rem; }
+    .avatar-info p  { font-size: .82rem; color: var(--btm-muted); margin-bottom: 10px; }
+    .avatar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Botones ── */
+    .btn-btm-primary {
+      background: linear-gradient(135deg, var(--btm-primary), var(--btm-primary-dark));
+      border: none; color: white;
+      border-radius: var(--radius-btn); font-weight: 700; padding: 10px 20px;
+      transition: all .25s ease;
+      box-shadow: 0 4px 14px rgba(91,188,255,.35);
+    }
+    .btn-btm-primary:hover {
+      background: linear-gradient(135deg, var(--btm-primary-dark), #2980B9);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(91,188,255,.45); color: white;
+    }
+    .btn-btm-outline {
+      background: transparent;
+      border: 1.5px solid var(--btm-border);
+      color: var(--btm-muted);
+      border-radius: var(--radius-btn); font-weight: 600; padding: 10px 20px;
+      transition: all .25s ease;
+    }
+    .btn-btm-outline:hover {
+      background: var(--btm-light);
+      border-color: var(--btm-primary-soft);
+      color: var(--btm-primary-dark); transform: translateY(-1px);
+    }
+    .btn-btm-danger {
+      background: transparent;
+      border: 1.5px solid #f5c6cb;
+      color: var(--btm-danger);
+      border-radius: var(--radius-btn); font-weight: 600; padding: 10px 20px;
+      transition: all .25s ease;
+    }
+    .btn-btm-danger:hover { background: #fff5f5; border-color: var(--btm-danger); color: var(--btm-danger); }
+
+    /* ── Formularios ── */
+    .perfil-form-label {
+      font-weight: 700; font-size: .88rem;
+      color: var(--btm-text); margin-bottom: 6px; display: block;
+    }
+    .perfil-form-control {
+      border: 1.5px solid var(--btm-border); border-radius: 10px;
+      padding: 10px 14px;
+      font-family: var(--font-body); font-size: .95rem; color: var(--btm-text);
+      background: var(--btm-bg-page); width: 100%;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .perfil-form-control:focus {
+      outline: none; border-color: var(--btm-primary);
+      box-shadow: 0 0 0 3px rgba(91,188,255,.18); background: white;
+    }
+    .perfil-form-control.is-invalid { border-color: var(--btm-danger); box-shadow: 0 0 0 3px rgba(220,53,69,.12); }
+    .perfil-form-control.is-valid   { border-color: var(--btm-success); box-shadow: 0 0 0 3px rgba(25,135,84,.10); }
+
+    .perfil-form-select {
+      border: 1.5px solid var(--btm-border); border-radius: 10px;
+      padding: 10px 14px;
+      font-family: var(--font-body); font-size: .95rem; color: var(--btm-text);
+      background: var(--btm-bg-page); width: 100%; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b8aaa' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .perfil-form-select:focus { outline: none; border-color: var(--btm-primary); box-shadow: 0 0 0 3px rgba(91,188,255,.18); background-color: white; }
+
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .input-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--btm-muted); font-size: 1rem; pointer-events: none;
+    }
+    .input-icon-wrap .perfil-form-control,
+    .input-icon-wrap .perfil-form-select { padding-left: 38px; }
+
+    .field-hint  { font-size: .78rem; color: var(--btm-muted); margin-top: 4px; display: block; }
+    .field-error { font-size: .78rem; color: var(--btm-danger); margin-top: 4px; display: none; }
+    .field-error.visible { display: block; }
+
+    /* ── Fortaleza contraseña ── */
+    .password-strength-bar {
+      height: 4px; border-radius: 4px; background: #e9ecef; margin-top: 8px; overflow: hidden;
+    }
+    .password-strength-fill { height: 100%; border-radius: 4px; width: 0%; transition: width .4s ease, background .4s ease; }
+    .strength-weak   { width: 25%; background: var(--btm-danger); }
+    .strength-fair   { width: 50%; background: var(--btm-warning); }
+    .strength-good   { width: 75%; background: var(--btm-primary); }
+    .strength-strong { width: 100%; background: var(--btm-success); }
+
+    .password-strength-label { font-size: .75rem; font-weight: 700; margin-top: 4px; display: block; }
+    .label-weak   { color: var(--btm-danger); }
+    .label-fair   { color: var(--btm-warning); }
+    .label-good   { color: var(--btm-primary-dark); }
+    .label-strong { color: var(--btm-success); }
+
+    .password-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--btm-muted);
+      cursor: pointer; font-size: 1rem; padding: 0; transition: color .2s ease;
+    }
+    .password-toggle:hover { color: var(--btm-primary-dark); }
+
+    /* ── Acciones ── */
+    .perfil-actions {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding-top: 1.25rem;
+      border-top: 1.5px solid var(--btm-border); margin-top: 1.5rem;
+    }
+
+    /* ── Badge verificado ── */
+    .verified-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #d4edda; color: var(--btm-success);
+      font-size: .72rem; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: .4px;
+    }
+
+    /* ── Separador ── */
+    .section-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: .5rem 0 1.25rem;
+      color: var(--btm-muted); font-size: .82rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+    }
+    .section-divider::before,
+    .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--btm-border); }
+
+    /* ── Alerta advertencia ── */
+    .btm-alert-warning {
+      background: #fffbec; border: 1.5px solid #fde68a;
+      border-left: 5px solid var(--btm-warning); color: #92400e;
+      border-radius: var(--radius-card); padding: 14px 18px;
+      display: flex; align-items: flex-start; gap: 10px; font-size: .88rem;
+    }
+
+    /* ── Toast ── */
+    .btm-toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--btm-card-bg);
+      border: 1.5px solid var(--btm-border);
+      border-left: 5px solid var(--btm-success);
+      border-radius: var(--radius-card);
+      box-shadow: 0 8px 28px rgba(0,0,0,.12);
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 12px;
+      z-index: 9999; min-width: 280px; max-width: 380px;
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .35s ease, transform .35s ease;
+      pointer-events: none;
+    }
+    .btm-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .btm-toast .toast-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #d4edda; color: var(--btm-success);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 1.1rem;
+    }
+    .btm-toast .toast-text strong { display: block; color: var(--btm-text); font-size: .9rem; }
+    .btm-toast .toast-text span   { color: var(--btm-muted); font-size: .8rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .perfil-wrapper { padding: 1rem .75rem 3rem; }
+      .avatar-section { flex-direction: column; text-align: center; }
+      .avatar-actions { justify-content: center; }
+      .perfil-actions { flex-direction: column; }
+      .perfil-actions .btn-btm-primary,
+      .perfil-actions .btn-btm-outline { width: 100%; text-align: center; }
+      .btm-toast { bottom: 16px; right: 16px; left: 16px; min-width: unset; }
+    }
+    @media (max-width: 480px) {
+      .perfil-card-body   { padding: 1.25rem 1rem; }
+      .perfil-card-header { padding: 1rem 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+     NAVBAR
+     ============================================================ -->
+  <nav class="btm-navbar px-4 py-3" role="navigation">
+    <div class="d-flex align-items-center justify-content-between w-100">
+
+      <!-- IZQUIERDA -->
+      <div class="d-flex align-items-center gap-4">
+        <a href="index.html" class="btm-logo d-flex align-items-center">
+          <div class="btm-logo-img me-2">
+            <img src="imagenes/logo.png" width="38" alt="BackToMe logo">
+          </div>
+          <span class="btm-logo-text">
+            <span class="bold-part">Back</span><span class="light-part">ToMe</span>
+          </span>
+        </a>
+
+        <ul class="nav d-none d-md-flex gap-2 mb-0">
+          <li><a class="nav-link" href="index.html">Inicio</a></li>
+          <li><a class="nav-link" href="publicaciones.html">Publicaciones</a></li>
+          <li><a class="nav-link" href="#">Reportes</a></li>
+        </ul>
+      </div>
+
+      <!-- DERECHA -->
+      <div class="d-flex align-items-center gap-2">
+        <!-- Botón que abre el offcanvas lateral -->
+        <button
+          class="border-0 bg-transparent d-flex align-items-center gap-1"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#menuLateral"
+          aria-controls="menuLateral"
+          title="Mi cuenta">
+          <i class="bi bi-person-circle fs-4" style="color:var(--btm-primary);"></i>
+          <span class="d-none d-md-inline fw-bold small" style="color:var(--btm-text);">Mi cuenta</span>
+        </button>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ============================================================
+     CONTENIDO PRINCIPAL
+     ============================================================ -->
+  <main>
+    <div class="perfil-wrapper">
+
+      <!-- Breadcrumb -->
+      <div class="perfil-page-header">
+        <nav aria-label="breadcrumb" class="mb-2">
+          <ol class="breadcrumb mb-0" style="font-size:.82rem;">
+            <li class="breadcrumb-item">
+              <a href="index.html" style="color:var(--btm-primary-dark);font-weight:600;text-decoration:none;">Inicio</a>
+            </li>
+            <li class="breadcrumb-item active text-muted">Mi perfil</li>
+          </ol>
+        </nav>
+        <h1 class="mb-1">
+          <i class="bi bi-person-circle me-2" style="color:var(--btm-primary);"></i>Mi perfil
+        </h1>
+        <p class="mb-0">Gestiona tu información personal y la seguridad de tu cuenta</p>
+      </div>
+
+      <!-- =========================================================
+         TARJETA 1 – INFORMACIÓN PERSONAL
+         ========================================================= -->
+      <div class="perfil-card">
+
+        <div class="perfil-card-header">
+          <div class="header-icon blue"><i class="bi bi-person-fill"></i></div>
+          <div>
+            <h5>Información personal</h5>
+            <p>Actualiza tus datos básicos de usuario</p>
+          </div>
+        </div>
+
+        <!-- Avatar -->
+        <div class="avatar-section">
+          <div class="avatar-wrapper">
+            <div class="avatar-placeholder" id="avatarPlaceholder">
+              <i class="bi bi-person-fill"></i>
+            </div>
+            <img src="" alt="Foto de perfil" class="avatar-img d-none" id="avatarImg">
+            <label class="avatar-edit-badge" for="inputFotoPerfil"
+              title="Cambiar foto" aria-label="Cambiar foto de perfil">
+              <i class="bi bi-camera-fill"></i>
+            </label>
+            <input type="file" class="d-none" id="inputFotoPerfil" accept="image/*">
+          </div>
+
+          <div class="avatar-info">
+            <h6 id="nombreDisplay">Kevin Ramírez</h6>
+            <p id="emailDisplay">kevin@gmail.com</p>
+            <span class="verified-badge">
+              <i class="bi bi-patch-check-fill"></i> Verificado
+            </span>
+            <div class="avatar-actions mt-2">
+              <label for="inputFotoPerfil" class="btn btn-sm btn-btm-outline" style="cursor:pointer;">
+                <i class="bi bi-upload me-1"></i>Cambiar foto
+              </label>
+              <button class="btn btn-sm btn-btm-danger" id="btnEliminarFoto">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="perfil-card-body">
+          <form id="formInfoPersonal" novalidate>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="perfil-form-label" for="nombreCompleto">
+                  Nombre completo <span class="text-danger">*</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-person input-icon"></i>
+                  <input type="text" class="perfil-form-control" id="nombreCompleto"
+                    name="nombre_completo" placeholder="Tu nombre completo" required autocomplete="name">
+                </div>
+                <span class="field-error" id="errorNombre">El nombre es obligatorio.</span>
+              </div>
+
+              <div class="col-md-6">
+                <label class="perfil-form-label" for="correoElectronico">
+                  Correo electrónico <span class="text-danger">*</span>
+                </label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-envelope input-icon"></i>
+                  <input type="email" class="perfil-form-control" id="correoElectronico"
+                    name="email" placeholder="correo@ejemplo.com" required autocomplete="email">
+                </div>
+                <span class="field-error" id="errorCorreo">Ingresa un correo válido.</span>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="perfil-form-label" for="telefono">Número de teléfono</label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-telephone input-icon"></i>
+                  <input type="tel" class="perfil-form-control" id="telefono"
+                    name="telefono" placeholder="300 123 4567" autocomplete="tel">
+                </div>
+                <span class="field-hint">Incluye indicativo de área si aplica.</span>
+              </div>
+            </div>
+
+            <div class="perfil-actions">
+              <button type="submit" class="btn btn-btm-primary">
+                <i class="bi bi-check2-circle me-2"></i>Guardar cambios
+              </button>
+              <button type="button" class="btn btn-btm-outline" id="btnCancelarInfo">
+                <i class="bi bi-x-circle me-2"></i>Cancelar
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+      <!-- / TARJETA 1 -->
+
+      <!-- =========================================================
+         TARJETA 2 – SEGURIDAD
+         ========================================================= -->
+      <div class="perfil-card">
+
+        <div class="perfil-card-header">
+          <div class="header-icon green"><i class="bi bi-shield-lock-fill"></i></div>
+          <div>
+            <h5>Seguridad de la cuenta</h5>
+            <p>Mantén tu cuenta protegida con una contraseña segura</p>
+          </div>
+        </div>
+
+        <div class="perfil-card-body">
+          <form id="formSeguridad" novalidate>
+
+            <div class="btm-alert-warning mb-4" role="alert">
+              <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+              <div>
+                <strong>Recomendación:</strong> Cambia tu contraseña periódicamente y no la compartas con nadie.
+              </div>
+            </div>
+
+            <!-- Contraseña actual -->
+            <div class="mb-4">
+              <label class="perfil-form-label" for="passActual">
+                Contraseña actual <span class="text-danger">*</span>
+              </label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-lock input-icon"></i>
+                <input type="password" class="perfil-form-control" id="passActual"
+                  name="password_actual" placeholder="Tu contraseña actual"
+                  required autocomplete="current-password" style="padding-right:44px;">
+                <button type="button" class="password-toggle" id="togglePassActual" aria-label="Ver contraseña">
+                  <i class="bi bi-eye" id="iconPassActual"></i>
+                </button>
+              </div>
+              <span class="field-error" id="errorPassActual">Ingresa tu contraseña actual.</span>
+            </div>
+
+            <div class="section-divider">Nueva contraseña</div>
+
+            <!-- Nueva contraseña -->
+            <div class="mb-3">
+              <label class="perfil-form-label" for="passNueva">
+                Nueva contraseña <span class="text-danger">*</span>
+              </label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-key input-icon"></i>
+                <input type="password" class="perfil-form-control" id="passNueva"
+                  name="password_nueva" placeholder="Mínimo 8 caracteres"
+                  required autocomplete="new-password" style="padding-right:44px;">
+                <button type="button" class="password-toggle" id="togglePassNueva" aria-label="Ver nueva contraseña">
+                  <i class="bi bi-eye" id="iconPassNueva"></i>
+                </button>
+              </div>
+              <div class="password-strength-bar">
+                <div class="password-strength-fill" id="strengthFill"></div>
+              </div>
+              <span class="password-strength-label" id="strengthLabel"></span>
+              <span class="field-error" id="errorPassNueva">La contraseña debe tener mínimo 8 caracteres.</span>
+            </div>
+
+            <!-- Confirmar -->
+            <div class="mb-4">
+              <label class="perfil-form-label" for="passConfirmar">
+                Confirmar nueva contraseña <span class="text-danger">*</span>
+              </label>
+              <div class="input-icon-wrap">
+                <i class="bi bi-key-fill input-icon"></i>
+                <input type="password" class="perfil-form-control" id="passConfirmar"
+                  name="password_confirmar" placeholder="Repite la nueva contraseña"
+                  required autocomplete="new-password" style="padding-right:44px;">
+                <button type="button" class="password-toggle" id="togglePassConfirmar" aria-label="Ver confirmación">
+                  <i class="bi bi-eye" id="iconPassConfirmar"></i>
+                </button>
+              </div>
+              <span class="field-error" id="errorPassConfirmar">Las contraseñas no coinciden.</span>
+            </div>
+
+            <!-- Tips -->
+            <div class="p-3 rounded-3 mb-4" style="background:var(--btm-bg-page);border:1.5px solid var(--btm-border);">
+              <p class="fw-bold mb-2 small" style="color:var(--btm-text);">
+                <i class="bi bi-lightbulb-fill me-1" style="color:var(--btm-warning);"></i>
+                Tips para una contraseña segura:
+              </p>
+              <ul class="mb-0 ps-3 small text-muted">
+                <li>Usa al menos 8 caracteres</li>
+                <li>Combina letras mayúsculas, minúsculas y números</li>
+                <li>Agrega símbolos especiales (!@#$%)</li>
+                <li>Evita información personal como tu nombre o fecha de nacimiento</li>
+              </ul>
+            </div>
+
+            <div class="perfil-actions">
+              <button type="submit" class="btn btn-btm-primary">
+                <i class="bi bi-shield-check me-2"></i>Actualizar contraseña
+              </button>
+              <button type="button" class="btn btn-btm-outline" id="btnCancelarSeguridad">
+                <i class="bi bi-x-circle me-2"></i>Cancelar
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+      <!-- / TARJETA 2 -->
+
+      <!-- =========================================================
+         TARJETA 3 – ZONA DE PELIGRO
+         ========================================================= -->
+      <div class="perfil-card" style="border-color:#f5c6cb;">
+
+        <div class="perfil-card-header" style="background:linear-gradient(135deg,#fff5f5,#fff);">
+          <div class="header-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+          <div>
+            <h5 style="color:var(--btm-danger);">Zona de peligro</h5>
+            <p>Acciones irreversibles sobre tu cuenta</p>
+          </div>
+        </div>
+
+        <div class="perfil-card-body">
+          <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+            <div>
+              <h6 class="fw-bold mb-1" style="color:var(--btm-text);">Eliminar mi cuenta</h6>
+              <p class="small text-muted mb-0">
+                Se eliminarán permanentemente tu perfil, publicaciones y datos personales.
+                Esta acción <strong>no se puede deshacer</strong>.
+              </p>
+            </div>
+            <button class="btn btn-btm-danger"
+              data-bs-toggle="modal" data-bs-target="#modalEliminarCuenta"
+              style="white-space:nowrap;flex-shrink:0;">
+              <i class="bi bi-trash3 me-2"></i>Eliminar cuenta
+            </button>
+          </div>
+        </div>
+
+      </div>
+      <!-- / TARJETA 3 -->
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+     FOOTER
+     ============================================================ -->
+  <footer class="footer-section py-4 mt-auto" role="contentinfo">
+    <div class="container-fluid px-4">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <p class="mb-0 text-muted small">
+            <i class="bi bi-heart-fill text-danger me-1"></i>
+            © 2024 <strong>BackToMe</strong>.
+            Recuperando objetos perdidos en <strong>Ipiales, Colombia</strong>
+          </p>
+        </div>
+        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+          <a href="terminos.html" class="footer-link me-3">Términos</a>
+          <a href="terminos.html" class="footer-link me-3">Privacidad</a>
+          <a href="terminos.html" class="footer-link">Contacto</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+     MENÚ LATERAL (Offcanvas) – mismo que index.html
+     ============================================================ -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="menuLateral"
+    aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="menuLateralLabel">Mi cuenta</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
+    </div>
+    <div class="offcanvas-body">
+
+      <!-- Info usuario -->
+      <div class="mb-4">
+        <strong id="menuNombre">Kevin Ramírez</strong>
+        <p class="text-muted small mb-1" id="menuEmail">kevin@gmail.com</p>
+        <span class="verified-badge">
+          <i class="bi bi-patch-check-fill"></i> Verificado
+        </span>
+      </div>
+
+      <!-- Navegación -->
+      <ul class="menu" role="menu">
+        <li role="menuitem">
+          <a href="index.html" class="menu-link">
+            <i class="bi bi-house" aria-hidden="true"></i> Inicio
+          </a>
+        </li>
+        <li role="menuitem">
+          <a href="perfil.html" class="menu-link active">
+            <i class="bi bi-person" aria-hidden="true"></i> Mi perfil
+          </a>
+        </li>
+        <li role="menuitem">
+          <a href="mis-publicaciones.html" class="menu-link">
+            <i class="bi bi-file-text" aria-hidden="true"></i> Mis publicaciones
+          </a>
+        </li>
+        <li role="menuitem">
+          <a href="admin.html" class="menu-link">
+            <i class="bi bi-shield-lock" aria-hidden="true"></i> Panel Admin
+          </a>
+        </li>
+      </ul>
+
+      <hr>
+
+      <button class="logout btn-link border-0 bg-transparent" id="btnLogout">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+        </button>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+     MODAL – CONFIRMAR ELIMINACIÓN
+     ============================================================ -->
+  <div class="modal fade" id="modalEliminarCuenta" tabindex="-1"
+    aria-labelledby="modalEliminarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+
+        <div class="modal-header border-0" style="background:#fff5f5;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="header-icon red"><i class="bi bi-trash3-fill"></i></div>
+            <div>
+              <h5 class="mb-0 fw-bold" id="modalEliminarLabel" style="color:var(--btm-danger);">
+                ¿Eliminar cuenta?
+              </h5>
+              <small class="text-muted">Esta acción no se puede deshacer</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body px-4 py-3">
+          <p class="mb-3 text-muted small">Para confirmar, escribe tu contraseña actual:</p>
+          <div class="input-icon-wrap">
+            <i class="bi bi-lock input-icon"></i>
+            <input type="password" class="perfil-form-control" id="passEliminar"
+              placeholder="Tu contraseña actual">
+          </div>
+          <p class="small text-danger mt-3 mb-0">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Se eliminarán tus publicaciones, mensajes y datos personales de forma permanente.
+          </p>
+        </div>
+
+        <div class="modal-footer border-0 bg-light">
+          <button type="button" class="btn btn-btm-outline" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-btm-danger" id="btnConfirmarEliminar">
+            <i class="bi bi-trash3 me-2"></i>Sí, eliminar mi cuenta
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+     TOAST
+     ============================================================ -->
+  <div class="btm-toast" id="toastExito" role="alert" aria-live="polite">
+    <div class="toast-icon"><i class="bi bi-check2-circle"></i></div>
+    <div class="toast-text">
+      <strong id="toastTitulo">¡Cambios guardados!</strong>
+      <span id="toastMsg">Tu información se actualizó correctamente.</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <script>
+    /* ============================================================
+       UTILS LOCAL
+       ============================================================ */
+    function getLocalUser() {
+      try {
+        return JSON.parse(localStorage.getItem('userLogged')) || null;
+      } catch (error) {
+        console.error('Error leyendo usuario local:', error);
+        return null;
+      }
+    }
+
+    function saveLocalUser(user) {
+      if (!user) return;
+      localStorage.setItem('userLogged', JSON.stringify(user));
+    }
+
+    function clearLocalUser() {
+      localStorage.removeItem('userLogged');
+    }
+
+    /* ============================================================
+       LOGOUT
+       ============================================================ */
+    document.getElementById('btnLogout').addEventListener('click', function () {
+      clearLocalUser();
+      window.location.href = 'login.html';
+    });
+
+    /* ============================================================
+       FOTO DE PERFIL
+       ============================================================ */
+    const inputFoto         = document.getElementById('inputFotoPerfil');
+    const avatarImg         = document.getElementById('avatarImg');
+    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+
+    inputFoto.addEventListener('change', async function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      // Preview local
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        avatarImg.src = e.target.result;
+        avatarImg.classList.remove('d-none');
+        avatarPlaceholder.classList.add('d-none');
+      };
+      reader.readAsDataURL(file);
+
+      // Guardar en Supabase Storage
+      const userId = window.currentUserId;
+      const fileName = `${userId}_${Date.now()}.${file.name.split('.').pop()}`;
+      const { error: uploadError } = await supabaseClient
+        .storage
+        .from('fotos-perfil')
+        .upload(`perfiles/${fileName}`, file, { upsert: false });
+
+      if (uploadError) {
+        console.error('Error al subir foto:', uploadError);
+        showToast('Error', 'No se pudo subir la foto. Intenta de nuevo.');
+        return;
+      }
+
+      const { data: publicUrlData } = supabaseClient
+        .storage
+        .from('fotos-perfil')
+        .getPublicUrl(`perfiles/${fileName}`);
+
+      const fotoUrl = publicUrlData?.publicUrl || '';
+
+      const { error: updateError } = await supabaseClient
+        .from('usuario')
+        .update({ foto_url: fotoUrl })
+        .eq('cedula', userId);
+
+      if (updateError) {
+        console.error('Error al actualizar foto_url:', updateError);
+        showToast('Error', 'No se pudo guardar la referencia de foto.');
+        return;
+      }
+
+      const updatedUser = { ...getLocalUser(), foto_url: fotoUrl };
+      saveLocalUser(updatedUser);
+      showToast('¡Foto actualizada!', 'Tu foto de perfil se cambió correctamente.');
+    });
+
+    document.getElementById('btnEliminarFoto').addEventListener('click', async function () {
+      const userId = window.currentUserId;
+      
+      // Eliminar referencia de la BD
+      const { error: deleteError } = await supabaseClient
+        .from('usuario')
+        .update({ foto_url: null })
+        .eq('cedula', userId);
+
+      if (deleteError) {
+        console.error('Error al eliminar foto_url:', deleteError);
+        return;
+      }
+
+      avatarImg.src = '';
+      avatarImg.classList.add('d-none');
+      avatarPlaceholder.classList.remove('d-none');
+      inputFoto.value = '';
+
+      const updatedUser = { ...getLocalUser(), foto_url: null };
+      saveLocalUser(updatedUser);
+      showToast('¡Foto eliminada!', 'Tu foto de perfil ha sido removida.');
+    });
+
+    /* ============================================================
+       TOGGLE VER / OCULTAR CONTRASEÑA
+       ============================================================ */
+    function setupToggle(btnId, inputId, iconId) {
+      document.getElementById(btnId).addEventListener('click', function () {
+        const input = document.getElementById(inputId);
+        const icon  = document.getElementById(iconId);
+        if (input.type === 'password') {
+          input.type     = 'text';
+          icon.className = 'bi bi-eye-slash';
+        } else {
+          input.type     = 'password';
+          icon.className = 'bi bi-eye';
+        }
+      });
+    }
+
+    setupToggle('togglePassActual',    'passActual',    'iconPassActual');
+    setupToggle('togglePassNueva',     'passNueva',     'iconPassNueva');
+    setupToggle('togglePassConfirmar', 'passConfirmar', 'iconPassConfirmar');
+
+    /* ============================================================
+       FORTALEZA DE CONTRASEÑA
+       ============================================================ */
+    document.getElementById('passNueva').addEventListener('input', function () {
+      const val   = this.value;
+      const fill  = document.getElementById('strengthFill');
+      const label = document.getElementById('strengthLabel');
+
+      fill.className  = 'password-strength-fill';
+      label.className = 'password-strength-label';
+
+      if (!val.length) { fill.style.width = '0'; label.textContent = ''; return; }
+
+      let score = 0;
+      if (val.length >= 8)           score++;
+      if (/[A-Z]/.test(val))         score++;
+      if (/[0-9]/.test(val))         score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      const levels = [
+        { cls: 'strength-weak',   lbl: 'Débil',      lblCls: 'label-weak'   },
+        { cls: 'strength-fair',   lbl: 'Regular',    lblCls: 'label-fair'   },
+        { cls: 'strength-good',   lbl: 'Buena',      lblCls: 'label-good'   },
+        { cls: 'strength-strong', lbl: 'Muy fuerte', lblCls: 'label-strong' },
+      ];
+
+      const lvl = levels[Math.min(score - 1, 3)] || levels[0];
+      fill.classList.add(lvl.cls);
+      label.classList.add(lvl.lblCls);
+      label.textContent = lvl.lbl;
+    });
+
+    /* ============================================================
+       TOAST HELPER
+       ============================================================ */
+    function showToast(titulo, msg) {
+      document.getElementById('toastTitulo').textContent = titulo;
+      document.getElementById('toastMsg').textContent    = msg;
+      const toast = document.getElementById('toastExito');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    async function initPerfil() {
+      const localUser = getLocalUser();
+      if (!localUser || !localUser.email) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      window.currentUserId = localUser.cedula;
+      const displayName = localUser.name || localUser.email || '';
+
+      document.getElementById('emailDisplay').textContent = localUser.email || '';
+      document.getElementById('menuEmail').textContent  = localUser.email || '';
+      document.getElementById('menuNombre').textContent = displayName;
+      document.getElementById('nombreDisplay').textContent = displayName;
+
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('usuario')
+        .select('*')
+        .eq('cedula', localUser.cedula)
+        .single();
+
+      if (profileError && !profileError.details?.includes('Results contain 0 rows')) {
+        console.warn('Supabase usuario load error:', profileError);
+      }
+
+      if (profile) {
+        document.getElementById('nombreCompleto').value      = profile.nombre || localUser.name || '';
+        document.getElementById('correoElectronico').value   = profile.correo || localUser.email || '';
+        document.getElementById('telefono').value            = profile.celular || localUser.celular || '';
+        
+        // Cargar foto de perfil
+        if (profile.foto_url) {
+          document.getElementById('avatarImg').src = profile.foto_url;
+          document.getElementById('avatarImg').classList.remove('d-none');
+          document.getElementById('avatarPlaceholder').classList.add('d-none');
+        }
+      } else {
+        document.getElementById('nombreCompleto').value      = localUser.name || '';
+        document.getElementById('correoElectronico').value   = localUser.email || '';
+        document.getElementById('telefono').value            = localUser.celular || '';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initPerfil);
+
+    /* ============================================================
+       FORMULARIO – INFORMACIÓN PERSONAL
+       ============================================================ */
+    document.getElementById('formInfoPersonal').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      let valid = true;
+
+      const nombre  = document.getElementById('nombreCompleto');
+      const correo  = document.getElementById('correoElectronico');
+      const telefono = document.getElementById('telefono');
+
+      // Nombre
+      if (!nombre.value.trim()) {
+        nombre.classList.add('is-invalid');
+        document.getElementById('errorNombre').classList.add('visible');
+        valid = false;
+      } else {
+        nombre.classList.remove('is-invalid'); nombre.classList.add('is-valid');
+        document.getElementById('errorNombre').classList.remove('visible');
+      }
+
+      // Correo
+      const emailReg = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailReg.test(correo.value.trim())) {
+        correo.classList.add('is-invalid');
+        document.getElementById('errorCorreo').classList.add('visible');
+        valid = false;
+      } else {
+        correo.classList.remove('is-invalid'); correo.classList.add('is-valid');
+        document.getElementById('errorCorreo').classList.remove('visible');
+      }
+
+      if (valid) {
+        const userId = window.currentUserId;
+        const updatedUser = {
+          ...getLocalUser(),
+          name: nombre.value.trim(),
+          email: correo.value.trim(),
+          celular: document.getElementById('telefono').value.trim(),
+        };
+
+        const { error: updateError } = await supabaseClient
+          .from('usuario')
+          .update({
+            nombre: nombre.value.trim(),
+            correo: correo.value.trim(),
+            celular: document.getElementById('telefono').value.trim()
+          })
+          .eq('cedula', userId);
+
+        if (updateError) {
+          console.error('Supabase update usuario error:', updateError);
+          showToast('Error', 'No se pudo guardar tu perfil. Intenta de nuevo.');
+          return;
+        }
+
+        saveLocalUser(updatedUser);
+        document.getElementById('nombreDisplay').textContent = nombre.value.trim();
+        document.getElementById('emailDisplay').textContent  = correo.value.trim();
+        document.getElementById('menuNombre').textContent    = nombre.value.trim();
+        document.getElementById('menuEmail').textContent     = correo.value.trim();
+        showToast('¡Cambios guardados!', 'Tu información se actualizó correctamente.');
+      }
+    });
+
+    document.getElementById('btnCancelarInfo').addEventListener('click', function () {
+      document.getElementById('formInfoPersonal').reset();
+      document.querySelectorAll('#formInfoPersonal .perfil-form-control').forEach(el => {
+        el.classList.remove('is-valid', 'is-invalid');
+      });
+      document.querySelectorAll('#formInfoPersonal .field-error').forEach(el => {
+        el.classList.remove('visible');
+      });
+    });
+
+    /* ============================================================
+       FORMULARIO – SEGURIDAD
+       ============================================================ */
+    document.getElementById('formSeguridad').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      let valid = true;
+
+      const actual    = document.getElementById('passActual');
+      const nueva     = document.getElementById('passNueva');
+      const confirmar = document.getElementById('passConfirmar');
+
+      if (!actual.value.trim()) {
+        actual.classList.add('is-invalid');
+        document.getElementById('errorPassActual').classList.add('visible');
+        valid = false;
+      } else {
+        actual.classList.remove('is-invalid'); actual.classList.add('is-valid');
+        document.getElementById('errorPassActual').classList.remove('visible');
+      }
+
+      if (nueva.value.length < 8) {
+        nueva.classList.add('is-invalid');
+        document.getElementById('errorPassNueva').classList.add('visible');
+        valid = false;
+      } else {
+        nueva.classList.remove('is-invalid'); nueva.classList.add('is-valid');
+        document.getElementById('errorPassNueva').classList.remove('visible');
+      }
+
+      if (!confirmar.value || confirmar.value !== nueva.value) {
+        confirmar.classList.add('is-invalid');
+        document.getElementById('errorPassConfirmar').classList.add('visible');
+        valid = false;
+      } else {
+        confirmar.classList.remove('is-invalid'); confirmar.classList.add('is-valid');
+        document.getElementById('errorPassConfirmar').classList.remove('visible');
+      }
+
+      if (valid) {
+        const userId = window.currentUserId;
+        const { error: passError } = await supabaseClient
+          .from('usuario')
+          .update({ contrasena: nueva.value.trim() })
+          .eq('cedula', userId);
+
+        if (passError) {
+          console.error('Supabase update password error:', passError);
+          showToast('Error', 'No se pudo actualizar la contraseña. Intenta de nuevo.');
+          return;
+        }
+
+        showToast('¡Contraseña actualizada!', 'Tu contraseña se cambió correctamente.');
+        this.reset();
+        document.querySelectorAll('#formSeguridad .perfil-form-control').forEach(el => {
+          el.classList.remove('is-valid', 'is-invalid');
+        });
+        document.querySelectorAll('#formSeguridad .field-error').forEach(el => {
+          el.classList.remove('visible');
+        });
+        const fill  = document.getElementById('strengthFill');
+        const label = document.getElementById('strengthLabel');
+        fill.className  = 'password-strength-fill';
+        fill.style.width = '0';
+        label.textContent = '';
+      }
+    });
+
+    document.getElementById('btnCancelarSeguridad').addEventListener('click', function () {
+      document.getElementById('formSeguridad').reset();
+      document.querySelectorAll('#formSeguridad .perfil-form-control').forEach(el => {
+        el.classList.remove('is-valid', 'is-invalid');
+      });
+      document.querySelectorAll('#formSeguridad .field-error').forEach(el => {
+        el.classList.remove('visible');
+      });
+      const fill  = document.getElementById('strengthFill');
+      const label = document.getElementById('strengthLabel');
+      fill.className  = 'password-strength-fill';
+      fill.style.width = '0';
+      label.textContent = '';
+    });
+  </script>
+
+</body>
+</html>
