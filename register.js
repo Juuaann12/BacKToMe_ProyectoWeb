@@ -331,7 +331,12 @@ async function registerUser({ name, email, cedula, phone, password, fotoPerfil, 
       .from('usuario')
       .select('correo')
       .eq('correo', email)
-      .single();
+      .limit(1)
+      .maybeSingle();
+
+    if (emailError) {
+      throw emailError;
+    }
 
     if (existingEmail) {
       return { success: false, message: 'El correo ya está registrado' };
@@ -342,7 +347,12 @@ async function registerUser({ name, email, cedula, phone, password, fotoPerfil, 
       .from('usuario')
       .select('cedula')
       .eq('cedula', cedula)
-      .single();
+      .limit(1)
+      .maybeSingle();
+
+    if (cedulaError) {
+      throw cedulaError;
+    }
 
     if (existingCedula) {
       return { success: false, message: 'La cédula ya está registrada' };
@@ -365,12 +375,14 @@ async function registerUser({ name, email, cedula, phone, password, fotoPerfil, 
       ]);
 
     if (insertError) {
-      throw insertError;
+      return { success: false, message: insertError.message || 'No se pudo crear el usuario' };
     }
 
     return { success: true };
-
-  return await response.json();
+  } catch (error) {
+    console.error('registerUser error:', error);
+    return { success: false, message: error.message || 'Error al registrar el usuario' };
+  }
 }
 
 /* ----------------------------------------------------------------
